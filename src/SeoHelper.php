@@ -20,7 +20,7 @@ class SeoHelper
     {
         $title = 'RAGEFILL — Каталог сверхострых соусов | Купить острый соус в Беларуси';
         $desc = 'Каталог сверхострых соусов RAGEFILL. Carolina Reaper, Trinidad Scorpion и другие огненные соусы ручной работы. Доставка по Беларуси.';
-        $url = $this->baseUrl . '/';
+        $url = $this->baseUrl . '/catalog';
 
         // Use first product image as OG fallback
         $image = '';
@@ -237,11 +237,11 @@ class SeoHelper
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 
-        // Main page
-        $xml .= $this->sitemapUrl($this->baseUrl . '/', '1.0', 'daily');
+        // Homepage
+        $xml .= $this->sitemapUrl($this->baseUrl . '/', '1.0', 'weekly');
 
-        // About page
-        $xml .= $this->sitemapUrl($this->baseUrl . '/about', '0.7', 'monthly');
+        // Catalog
+        $xml .= $this->sitemapUrl($this->baseUrl . '/catalog', '0.9', 'daily');
 
         // Product pages
         foreach ($sauces as $sauce) {

@@ -18,6 +18,42 @@ $db = new Database($config['db_path']);
 $auth = new AuthMiddleware($config['admin_password']);
 $seo = new SeoHelper($config['base_url']);
 
+const ABOUT_BENEFITS = [
+    ['icon' => '🌶️', 'title' => 'Ручная работа', 'text' => 'Каждая партия готовится вручную из свежих перцев небольшими порциями.'],
+    ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Без консервантов, красителей и усилителей вкуса — только настоящие ингредиенты.'],
+    ['icon' => '🔥', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
+    ['icon' => '🎁', 'title' => 'Идеальный подарок', 'text' => 'Подарочные наборы и индивидуальная подборка соусов для любого повода.'],
+    ['icon' => '🚚', 'title' => 'Доставка по Беларуси', 'text' => 'Отправляем почтой и курьером по всей стране. Самовывоз в Минске.'],
+    ['icon' => '💬', 'title' => 'Личный подход', 'text' => 'Поможем подобрать соус под ваш вкус — просто напишите в Telegram.'],
+];
+
+const ABOUT_FAQ = [
+    [
+        'question' => 'Как сделать заказ?',
+        'answer' => 'Напишите нам в Telegram <a href="https://t.me/rage_fill">@rage_fill</a> — поможем выбрать соус и оформим заказ. Также можно открыть каталог прямо в Telegram-боте.',
+    ],
+    [
+        'question' => 'Какие способы доставки доступны?',
+        'answer' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту. Возможен самовывоз в Минске — уточняйте детали в Telegram.',
+    ],
+    [
+        'question' => 'Какой срок годности у соусов?',
+        'answer' => 'Срок годности наших соусов — 12 месяцев с даты изготовления. Храните в прохладном месте, после вскрытия — в холодильнике.',
+    ],
+    [
+        'question' => 'Из чего делают соусы RAGE FILL?',
+        'answer' => 'Только натуральные ингредиенты: свежие острые перцы (выращиваем сами), овощи, специи, уксус. Без консервантов, красителей и усилителей вкуса.',
+    ],
+    [
+        'question' => 'Какой соус выбрать, если я не пробовал острое?',
+        'answer' => 'Начните с соусов с уровнем остроты 1–2 (умеренная). Они дают приятное тепло без экстремального жжения. Мы поможем подобрать — напишите нам!',
+    ],
+    [
+        'question' => 'Можно ли заказать соус в подарок?',
+        'answer' => 'Да! У нас есть готовые подарочные наборы, а также можем собрать индивидуальный комплект. Отличный подарок на День рождения, 23 февраля, 8 марта и любой праздник.',
+    ],
+];
+
 $app = AppFactory::create();
 
 $app->addBodyParsingMiddleware();
@@ -226,18 +262,24 @@ $app->get('/sauce/{slug:[a-z0-9][a-z0-9\-]*}', function (Request $request, Respo
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
 
-// --- Serve catalog with SSR ---
+// --- Homepage ---
 
-$app->get('/', function (Request $request, Response $response) use ($db, $seo) {
+$app->get('/', function (Request $request, Response $response) use ($config, $seo, $db) {
+    $html = renderHomePage($config, $seo, $db);
+    $response->getBody()->write($html);
+    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+});
+
+// --- Catalog with SSR ---
+
+$app->get('/catalog', function (Request $request, Response $response) use ($db, $seo) {
     $sauces = $db->getAllSauces(true);
     $html = file_get_contents(__DIR__ . '/catalog.html');
 
-    // Inject SEO meta tags
-    $html = str_replace('{{SEO_TITLE}}', 'RAGEFILL — Каталог сверхострых соусов | Купить острый соус в Беларуси', $html);
+    $html = str_replace('{{SEO_TITLE}}', 'Каталог — RAGEFILL | Острые соусы ручной работы', $html);
     $html = str_replace('{{SEO_META}}', $seo->catalogMeta($sauces), $html);
     $html = str_replace('{{SEO_JSONLD}}', $seo->catalogJsonLd($sauces), $html);
 
-    // SSR: render product cards as static HTML
     $ssrHtml = '';
     foreach ($sauces as $sauce) {
         $ssrHtml .= $seo->renderProductCard($sauce);
@@ -254,53 +296,13 @@ $app->get('/admin', function (Request $request, Response $response) {
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
 
-// --- About page (benefits, FAQ, reviews) ---
+// --- About redirects to homepage ---
 
-$app->get('/about', function (Request $request, Response $response) use ($config, $seo) {
-    $html = renderAboutPage($config, $seo);
-    $response->getBody()->write($html);
-    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+$app->get('/about', function (Request $request, Response $response) {
+    return $response->withHeader('Location', '/')->withStatus(301);
 });
 
 $app->run();
-
-// --- FAQ data ---
-
-const ABOUT_FAQ = [
-    [
-        'q' => 'Из чего делают соусы RAGEFILL?',
-        'a' => 'Только натуральные ингредиенты: свежие острые перцы (Carolina Reaper, Trinidad Scorpion, Habanero и др.), овощи, специи, уксус. Без консервантов, красителей и усилителей вкуса.',
-    ],
-    [
-        'q' => 'Какой соус выбрать новичку?',
-        'a' => 'Начните с соусов с остротой 1–2 из 5. Они дают приятное тепло без экстремального жжения. Подробности по каждому соусу — в карточке товара.',
-    ],
-    [
-        'q' => 'Как хранить соус после вскрытия?',
-        'a' => 'В холодильнике, при температуре +2…+6 °C. Срок хранения после вскрытия — до 6 месяцев. Невскрытый соус хранится при комнатной температуре до 12 месяцев.',
-    ],
-    [
-        'q' => 'Как оформить заказ?',
-        'a' => 'Напишите нам в Telegram — мы подберём соусы под ваш вкус, ответим на вопросы и оформим доставку.',
-    ],
-    [
-        'q' => 'Есть ли доставка по Беларуси?',
-        'a' => 'Да! Доставляем по всей Беларуси почтой и курьерскими службами. По Минску возможен самовывоз.',
-    ],
-    [
-        'q' => 'Можно ли заказать подарочный набор?',
-        'a' => 'Конечно. У нас есть готовые подарочные наборы, а также можно собрать индивидуальный набор на ваш вкус.',
-    ],
-];
-
-const ABOUT_BENEFITS = [
-    ['icon' => '🌶️', 'title' => 'Ручная работа', 'text' => 'Каждая партия готовится вручную из свежих перцев небольшими порциями.'],
-    ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Без консервантов, красителей и усилителей вкуса — только настоящие ингредиенты.'],
-    ['icon' => '🔥', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
-    ['icon' => '🎁', 'title' => 'Идеальный подарок', 'text' => 'Подарочные наборы и индивидуальная подборка соусов для любого повода.'],
-    ['icon' => '🚚', 'title' => 'Доставка по Беларуси', 'text' => 'Отправляем почтой и курьером по всей стране. Самовывоз в Минске.'],
-    ['icon' => '💬', 'title' => 'Личный подход', 'text' => 'Поможем подобрать соус под ваш вкус — просто напишите в Telegram.'],
-];
 
 // --- Helpers ---
 
@@ -551,7 +553,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
 
         <article class="product-page">
             <nav class="product-page__breadcrumb" aria-label="Навигация">
-                <a href="/">Каталог</a>
+                <a href="/catalog">Каталог</a>
                 <span class="product-page__breadcrumb-sep" aria-hidden="true">
                     <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
@@ -602,7 +604,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
                             {$ctaIcon}
                             <span>{$ctaText}</span>
                         </a>
-                        <a href="/" class="product-page__back">← Вернуться в каталог</a>
+                        <a href="/catalog" class="product-page__back">← Вернуться в каталог</a>
                     </div>
                 </div>
             </div>
@@ -665,7 +667,7 @@ function renderProductNotFound(): string
             <div class="empty-state__icon">🌶️</div>
             <div class="empty-state__text">Товар не найден</div>
             <div class="empty-state__hint">Возможно, он был удалён или скрыт</div>
-            <a href="/" class="empty-state__btn">Вернуться в каталог</a>
+            <a href="/catalog" class="empty-state__btn">Вернуться в каталог</a>
         </div>
     </body>
     </html>
@@ -701,34 +703,338 @@ function deleteImageFile(?string $image, array $config): void
     }
 }
 
-// --- FAQ constants ---
+// --- Homepage renderer ---
 
-const ABOUT_FAQ = [
-    [
-        'question' => 'Как сделать заказ?',
-        'answer' => 'Напишите нам в Telegram <a href="https://t.me/rage_fill">@rage_fill</a> — поможем выбрать соус и оформим заказ. Также можно открыть каталог прямо в Telegram-боте.',
-    ],
-    [
-        'question' => 'Какие способы доставки доступны?',
-        'answer' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту. Возможен самовывоз в Минске — уточняйте детали в Telegram.',
-    ],
-    [
-        'question' => 'Какой срок годности у соусов?',
-        'answer' => 'Срок годности наших соусов — 12 месяцев с даты изготовления. Храните в прохладном месте, после вскрытия — в холодильнике.',
-    ],
-    [
-        'question' => 'Из чего делают соусы RAGE FILL?',
-        'answer' => 'Только натуральные ингредиенты: свежие острые перцы (выращиваем сами), овощи, специи, уксус. Без консервантов, красителей и усилителей вкуса.',
-    ],
-    [
-        'question' => 'Какой соус выбрать, если я не пробовал острое?',
-        'answer' => 'Начните с соусов с уровнем остроты 1–2 (умеренная). Они дают приятное тепло без экстремального жжения. Мы поможем подобрать — напишите нам!',
-    ],
-    [
-        'question' => 'Можно ли заказать соус в подарок?',
-        'answer' => 'Да! У нас есть готовые подарочные наборы, а также можем собрать индивидуальный комплект. Отличный подарок на День рождения, 23 февраля, 8 марта и любой праздник.',
-    ],
-];
+function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): string
+{
+    $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
+    $baseUrl = rtrim($config['base_url'], '/');
+    $year = date('Y');
+
+    // SEO
+    $title = 'RAGE FILL — Авторские острые соусы ручной работы | Минск, Беларусь';
+    $desc = 'Острые соусы ручной работы RAGE FILL. Собственные перцы, натуральные ингредиенты, от лёгкой до экстремальной остроты. Каталог, доставка по Беларуси.';
+    $url = $baseUrl . '/';
+
+    $metaTags = $seo->buildAboutMeta($title, $desc, $url);
+
+    // FAQ JSON-LD
+    $faqLd = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => []];
+    foreach (ABOUT_FAQ as $item) {
+        $faqLd['mainEntity'][] = [
+            '@type' => 'Question',
+            'name' => $item['question'],
+            'acceptedAnswer' => ['@type' => 'Answer', 'text' => strip_tags($item['answer'])],
+        ];
+    }
+    $faqJsonLd = '<script type="application/ld+json">'
+        . json_encode($faqLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
+        . '</script>';
+
+    // Featured products (is_hit=1, limit 4)
+    $allSauces = $db->getAllSauces(true);
+    $featured = array_filter($allSauces, fn($s) => ($s['is_hit'] ?? 0) == 1);
+    $featured = array_slice($featured, 0, 4);
+    if (count($featured) < 3) {
+        $featured = array_slice($allSauces, 0, 4);
+    }
+
+    $featuredHtml = '';
+    foreach ($featured as $s) {
+        $name = htmlspecialchars($s['name'], ENT_QUOTES, 'UTF-8');
+        $subtitle = htmlspecialchars($s['subtitle'] ?? '', ENT_QUOTES, 'UTF-8');
+        $slug = htmlspecialchars($s['slug'] ?? $s['id'], ENT_QUOTES, 'UTF-8');
+        $heat = (int)($s['heat_level'] ?? 1);
+        $img = !empty($s['image'])
+            ? '<img class="home-product__img" src="/uploads/' . htmlspecialchars($s['image'], ENT_QUOTES, 'UTF-8') . '" alt="' . $name . '" loading="lazy">'
+            : '<div class="home-product__img-placeholder"></div>';
+
+        $peppers = '';
+        for ($i = 0; $i < $heat; $i++) $peppers .= '<span class="pepper active">🌶️</span>';
+        for ($i = $heat; $i < 5; $i++) $peppers .= '<span class="pepper dim">🌶️</span>';
+
+        $featuredHtml .= <<<HTML
+            <a href="/sauce/{$slug}" class="home-product" data-aos="fade-up" data-aos-delay="{delay}">
+                <div class="home-product__image-wrap">{$img}</div>
+                <div class="home-product__info">
+                    <h3 class="home-product__name">{$name}</h3>
+                    <div class="home-product__subtitle">{$subtitle}</div>
+                    <div class="home-product__heat">{$peppers} <span class="home-product__heat-label">{$heat}/5</span></div>
+                </div>
+            </a>
+        HTML;
+    }
+    // Fix delays
+    $i = 0;
+    $featuredHtml = preg_replace_callback('/{delay}/', function() use (&$i) {
+        return (string)($i++ * 100);
+    }, $featuredHtml);
+
+    // Benefits
+    $benefits = [
+        ['icon' => '🌶', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
+        ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
+        ['icon' => '🎁', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
+        ['icon' => '🔥', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
+        ['icon' => '🚚', 'title' => 'Доставка по Беларуси', 'text' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту.'],
+        ['icon' => '⭐', 'title' => 'Запоминающийся вкус', 'text' => 'Соусы, которые действительно жгут и запоминаются. Яркий вкус для мяса, пиццы, бургеров.'],
+    ];
+
+    $benefitsHtml = '';
+    $bIdx = 0;
+    foreach ($benefits as $b) {
+        $delay = $bIdx * 100;
+        $benefitsHtml .= <<<HTML
+            <div class="home-benefit" data-aos="fade-up" data-aos-delay="{$delay}">
+                <div class="home-benefit__icon">{$b['icon']}</div>
+                <h3 class="home-benefit__title">{$b['title']}</h3>
+                <p class="home-benefit__text">{$b['text']}</p>
+            </div>
+        HTML;
+        $bIdx++;
+    }
+
+    // FAQ
+    $faqHtml = '';
+    foreach (ABOUT_FAQ as $item) {
+        $q = htmlspecialchars($item['question'], ENT_QUOTES, 'UTF-8');
+        $a = $item['answer'];
+        $faqHtml .= <<<HTML
+            <details class="home-faq__item" data-aos="fade-up">
+                <summary class="home-faq__question">{$q}</summary>
+                <div class="home-faq__answer">{$a}</div>
+            </details>
+        HTML;
+    }
+
+    // Reviews
+    $reviewsDir = __DIR__ . '/uploads/reviews/';
+    $reviewImages = [];
+    if (is_dir($reviewsDir)) {
+        foreach (scandir($reviewsDir) as $f) {
+            if (preg_match('/\.(jpe?g|png|webp)$/i', $f)) $reviewImages[] = $f;
+        }
+        sort($reviewImages);
+    }
+
+    $reviewsHtml = '';
+    if (!empty($reviewImages)) {
+        foreach ($reviewImages as $idx => $img) {
+            $src = '/uploads/reviews/' . htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
+            $delay = $idx * 80;
+            $reviewsHtml .= <<<HTML
+                <a href="{$src}" class="home-review" target="_blank" rel="noopener" data-aos="fade-up" data-aos-delay="{$delay}">
+                    <img class="home-review__img" src="{$src}" alt="Отзыв клиента RAGE FILL" loading="lazy">
+                </a>
+            HTML;
+        }
+    } else {
+        $reviewsHtml = '<p class="home-reviews__empty">Скоро здесь появятся отзывы наших клиентов!</p>';
+    }
+
+    return <<<HTML
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+        <title>{$title}</title>
+        {$metaTags}
+        <link rel="canonical" href="{$url}">
+        <link rel="alternate" hreflang="ru-BY" href="{$url}">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <meta name="theme-color" content="#1C1410">
+        <link rel="stylesheet" href="/css/style.css?v=4.0.0">
+        <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+        {$faqJsonLd}
+    </head>
+    <body class="browser-mode home-page">
+
+        <header class="header header--home">
+            <div class="header__inner">
+                <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
+                <nav class="header__nav" id="main-nav">
+                    <a href="/catalog" class="header__nav-link">Каталог</a>
+                    <a href="#benefits" class="header__nav-link">О нас</a>
+                    <a href="#faq" class="header__nav-link">FAQ</a>
+                    <a href="https://t.me/{$contactTg}" class="header__nav-link" target="_blank" rel="noopener">Контакты</a>
+                </nav>
+                <div class="header__actions">
+                    <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
+                        <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                        <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    </button>
+                    <button class="burger-btn" id="burger-btn" aria-label="Меню" aria-expanded="false">
+                        <span class="burger-btn__line"></span>
+                        <span class="burger-btn__line"></span>
+                        <span class="burger-btn__line"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+
+        <!-- Hero -->
+        <section class="home-hero">
+            <div class="home-hero__inner">
+                <h1 class="home-hero__title" data-aos="fade-up">
+                    <span class="home-hero__title-rage">RAGE</span> <span class="home-hero__title-fill">FILL</span>
+                </h1>
+                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Авторские острые соусы ручной работы</p>
+                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Выращиваем перцы сами, готовим по собственным рецептам. Натуральные ингредиенты, яркий вкус и острота от лёгкой до экстремальной.</p>
+                <div class="home-hero__buttons" data-aos="fade-up" data-aos-delay="300">
+                    <a href="/catalog" class="home-hero__btn home-hero__btn--primary">Смотреть каталог</a>
+                    <a href="https://t.me/{$contactTg}" class="home-hero__btn home-hero__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Featured Products -->
+        <section class="home-section home-featured-section">
+            <div class="home-container">
+                <h2 class="home-section__title" data-aos="fade-up">Популярное</h2>
+                <div class="home-featured">
+                    {$featuredHtml}
+                </div>
+                <div class="home-featured__more" data-aos="fade-up">
+                    <a href="/catalog" class="home-featured__more-link">Смотреть весь каталог →</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits -->
+        <section class="home-section home-benefits-section" id="benefits">
+            <div class="home-container">
+                <h2 class="home-section__title" data-aos="fade-up">Почему выбирают нас</h2>
+                <div class="home-benefits">
+                    {$benefitsHtml}
+                </div>
+            </div>
+        </section>
+
+        <!-- Reviews -->
+        <section class="home-section home-reviews-section">
+            <div class="home-container">
+                <h2 class="home-section__title" data-aos="fade-up">Отзывы</h2>
+                <p class="home-section__subtitle" data-aos="fade-up">Реальные отзывы наших клиентов из Instagram</p>
+                <div class="home-reviews">
+                    {$reviewsHtml}
+                </div>
+                <div class="home-reviews__cta" data-aos="fade-up">
+                    <a href="https://instagram.com/ragefill.by" class="home-reviews__instagram" target="_blank" rel="noopener noreferrer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        Ещё отзывы в Instagram
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="home-section home-faq-section" id="faq">
+            <div class="home-container">
+                <h2 class="home-section__title" data-aos="fade-up">Частые вопросы</h2>
+                <div class="home-faq">
+                    {$faqHtml}
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="home-cta" data-aos="fade-up">
+            <div class="home-container">
+                <div class="home-cta__inner">
+                    <h2 class="home-cta__title">Готовы попробовать?</h2>
+                    <p class="home-cta__text">Откройте каталог и выберите свой уровень огня</p>
+                    <div class="home-cta__buttons">
+                        <a href="/catalog" class="home-hero__btn home-hero__btn--primary">Перейти в каталог</a>
+                        <a href="https://t.me/{$contactTg}" class="home-hero__btn home-hero__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        </main>
+
+        <footer class="home-footer">
+            <div class="home-container">
+                <div class="home-footer__inner">
+                    <div class="home-footer__brand">
+                        <div class="home-footer__logo"><span class="home-footer__logo-rage">RAGE</span> <span class="home-footer__logo-fill">FILL</span></div>
+                        <p class="home-footer__tagline">Острые соусы ручной работы, Беларусь</p>
+                    </div>
+                    <div class="home-footer__links">
+                        <a href="/catalog">Каталог</a>
+                        <a href="#benefits">О нас</a>
+                        <a href="#faq">FAQ</a>
+                    </div>
+                    <div class="home-footer__social">
+                        <a href="https://t.me/{$contactTg}" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>
+                        </a>
+                        <a href="https://instagram.com/ragefill.by" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="home-footer__bottom">
+                    <span>&copy; {$year} RAGEFILL. Все права защищены.</span>
+                </div>
+            </div>
+        </footer>
+
+        <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+        <script>
+            AOS.init({ duration: 700, once: true, offset: 50 });
+
+            // Theme toggle
+            (function() {
+                const saved = localStorage.getItem('ragefill-theme');
+                if (saved === 'dark') document.body.classList.add('tg-dark');
+                const btn = document.getElementById('theme-toggle');
+                if (!btn) return;
+                btn.addEventListener('click', () => {
+                    const isDark = document.body.classList.toggle('tg-dark');
+                    localStorage.setItem('ragefill-theme', isDark ? 'dark' : 'light');
+                });
+            })();
+
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(a => {
+                a.addEventListener('click', e => {
+                    const target = document.querySelector(a.getAttribute('href'));
+                    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+                });
+            });
+
+            // Burger menu
+            (function(){
+                var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
+                if(!btn||!nav)return;
+                btn.addEventListener('click',function(){
+                    var open=nav.classList.toggle('open');
+                    btn.classList.toggle('open',open);
+                    btn.setAttribute('aria-expanded',String(open));
+                    document.body.classList.toggle('menu-open',open);
+                });
+                nav.querySelectorAll('a').forEach(function(a){
+                    a.addEventListener('click',function(){
+                        nav.classList.remove('open');
+                        btn.classList.remove('open');
+                        btn.setAttribute('aria-expanded','false');
+                        document.body.classList.remove('menu-open');
+                    });
+                });
+            })();
+        </script>
+    </body>
+    </html>
+    HTML;
+}
 
 // --- About page renderer ---
 
@@ -850,7 +1156,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
                     <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
                 </a>
                 <div class="header__actions">
-                    <a href="/" class="about-nav-link">Каталог</a>
+                    <a href="/catalog" class="about-nav-link">Каталог</a>
                     <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
                         <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                         <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -895,7 +1201,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
                 <h2 class="about-cta__title">Готовы попробовать?</h2>
                 <p class="about-cta__text">Откройте каталог и выберите свой огонь!</p>
                 <div class="about-cta__buttons">
-                    <a href="/" class="about-cta__btn about-cta__btn--primary">Перейти в каталог</a>
+                    <a href="/catalog" class="about-cta__btn about-cta__btn--primary">Перейти в каталог</a>
                     <a href="https://t.me/{$contactTg}" class="about-cta__btn about-cta__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
                 </div>
             </section>

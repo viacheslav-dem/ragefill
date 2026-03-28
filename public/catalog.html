@@ -5,22 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{SEO_TITLE}}</title>
     {{SEO_META}}
-    <link rel="alternate" hreflang="ru-BY" href="https://ragefill.by/">
+    <link rel="alternate" hreflang="ru-BY" href="https://ragefill.by/catalog">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#1C1410">
-    <link rel="stylesheet" href="/css/style.css?v=3.0.0">
+    <link rel="stylesheet" href="/css/style.css?v=4.0.0">
     <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
 </head>
 <body>
 
 <!-- Header -->
-<header class="header">
+<header class="header header--catalog">
     <div class="header__inner">
-        <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
+        <a href="/" class="header__logo-link" aria-label="На главную"><div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div></a>
+        <nav class="header__nav browser-only-link" id="main-nav">
+            <a href="/" class="header__nav-link">Главная</a>
+            <a href="/#benefits" class="header__nav-link">О нас</a>
+            <a href="/#faq" class="header__nav-link">FAQ</a>
+        </nav>
         <!-- Desktop search bar (synced with mobile search) -->
         <div class="header__desktop-search">
             <svg class="header__search-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -30,32 +35,27 @@
             <input type="text" class="header__search-input" id="desktop-search-input" placeholder="Поиск по каталогу..." autocomplete="off">
         </div>
         <div class="header__actions">
-            <a href="/about" class="about-nav-link browser-only-link">О нас</a>
             <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
                 <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                 <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            </button>
+            <button class="burger-btn browser-only-link" id="burger-btn" aria-label="Меню" aria-expanded="false">
+                <span class="burger-btn__line"></span>
+                <span class="burger-btn__line"></span>
+                <span class="burger-btn__line"></span>
             </button>
         </div>
     </div>
 </header>
 
-<!-- Hero stripe (mobile only, browser only) -->
-<div class="hero-stripe">
-    <h1 class="hero-stripe__text">Каталог острых соусов RAGE FILL 🔥 (Минск, Беларусь)</h1>
-</div>
-
-<!-- Desktop hero banner (desktop only, browser only) -->
-<section class="desktop-hero">
-    <div class="desktop-hero__inner">
-        <h1 class="desktop-hero__title">Каталог острых соусов RAGE FILL 🔥 (Минск, Беларусь)</h1>
-        <p class="desktop-hero__subtitle">Авторские острые соусы ручной работы, маринованные перцы, сверхострые специи, подарочные наборы и острый арахис. Яркий вкус, натуральные ингредиенты и острота под любой вкус — от лёгкой до экстремальной. Идеальный выбор для мяса, пиццы, бургеров и закусок. Доставка по Минску и Беларуси.</p>
-    </div>
-</section>
-
-<!-- SEO intro text (browser only) -->
-<section class="seo-intro" aria-label="О бренде">
-    <p>Авторские острые соусы ручной работы, маринованные перцы, сверхострые специи, подарочные наборы и острый арахис. Яркий вкус, натуральные ингредиенты и острота под любой вкус — от лёгкой до экстремальной. Идеальный выбор для мяса, пиццы, бургеров и закусок. Доставка по Минску и Беларуси.</p>
-</section>
+<!-- Breadcrumb (browser only, hidden in TG) -->
+<nav class="catalog-breadcrumb browser-only-link" aria-label="Навигация">
+    <a href="/">Главная</a>
+    <span class="catalog-breadcrumb__sep" aria-hidden="true">
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span>Каталог</span>
+</nav>
 
 <main id="main-content">
 
@@ -280,6 +280,10 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                     Instagram
                 </a>
+                <a href="/" class="browser-only-link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    Главная
+                </a>
             </nav>
         </div>
         <div class="site-footer__about">
@@ -293,5 +297,25 @@
 </footer>
 
 <script src="/js/catalog.js?v=2.0.0" data-cfasync="false"></script>
+<script data-cfasync="false">
+(function(){
+    var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
+    if(!btn||!nav)return;
+    btn.addEventListener('click',function(){
+        var open=nav.classList.toggle('open');
+        btn.classList.toggle('open',open);
+        btn.setAttribute('aria-expanded',String(open));
+        document.body.classList.toggle('menu-open',open);
+    });
+    nav.querySelectorAll('a').forEach(function(a){
+        a.addEventListener('click',function(){
+            nav.classList.remove('open');
+            btn.classList.remove('open');
+            btn.setAttribute('aria-expanded','false');
+            document.body.classList.remove('menu-open');
+        });
+    });
+})();
+</script>
 </body>
 </html>

@@ -32,5 +32,5 @@ return [
     'contact_telegram' => 'rage_fill',
 
     // Debug mode
-    'debug' => false,
+    'debug' => true,
 ];
