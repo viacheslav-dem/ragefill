@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>RAGEFILL — Админка</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#1a0f08">
+    <link rel="stylesheet" href="/css/style.css?v=1.9.0">
+
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="login-screen" class="admin-login">
+    <div class="admin-login__logo"><span class="admin-login__logo-rage">RAGE</span> <span class="admin-login__logo-fill">FILL</span></div>
+    <h2 class="admin-login__title">Панель управления</h2>
+    <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="login-password" class="form-input" placeholder="Введите пароль…" autocomplete="current-password" spellcheck="false" autofocus>
+    </div>
+    <button id="login-btn" class="btn btn-primary btn-block" style="border-radius:14px;height:48px;">
+        <span class="btn-spinner"></span>
+        <span class="btn-text">Войти</span>
+    </button>
+</div>
+
+<!-- Admin panel -->
+<div id="admin-panel" style="display:none">
+    <!-- Admin header -->
+    <header class="admin-header">
+        <div class="admin-header__glow"></div>
+        <a href="/catalog.html" class="admin-header__label">RAGE FILL ADMIN</a>
+        <div class="admin-header__nav">
+            <a href="/" class="admin-header__link">Каталог</a>
+            <button id="logout-btn" class="admin-header__logout">Выход</button>
+        </div>
+    </header>
+
+    <div class="admin-content">
+        <!-- Add sauce button -->
+        <button id="add-sauce-btn" class="admin-add-btn">+ Добавить соус</button>
+
+        <!-- Search -->
+        <div class="admin-search">
+            <div class="search-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+                <input type="text" class="search-input" id="admin-search" placeholder="Поиск по соусам…" autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Counter -->
+        <div id="admin-counter" class="admin-counter"></div>
+
+        <!-- Sauce list -->
+        <div id="sauce-list" class="admin-sauce-list"></div>
+    </div>
+</div>
+
+<!-- Sauce form modal -->
+<div id="form-overlay" class="form-modal-overlay">
+    <div class="form-modal" role="dialog" aria-modal="true" aria-labelledby="form-title">
+        <div class="form-modal__header">
+            <h2 id="form-title" class="form-modal__title">Добавить соус</h2>
+            <button class="form-modal__close" id="form-close-btn" aria-label="Закрыть">&times;</button>
+        </div>
+
+        <form id="sauce-form">
+            <input type="hidden" id="form-id">
+            <input type="hidden" id="form-remove-image" value="0">
+
+            <div class="form-group">
+                <label>Название *</label>
+                <input type="text" id="form-name" class="form-input" placeholder="Название соуса" required minlength="2" autocomplete="off">
+                <div class="form-error" id="form-name-error">Минимум 2 символа</div>
+            </div>
+
+            <div class="form-group">
+                <label>Краткое описание</label>
+                <input type="text" id="form-subtitle" class="form-input" placeholder="Напр. сверхострый копчёный соус" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>Категория</label>
+                <select id="form-category" class="form-input">
+                    <option value="sauce">Соусы</option>
+                    <option value="gift_set">Подарочные наборы</option>
+                    <option value="pickled_pepper">Маринованные перцы</option>
+                    <option value="spicy_peanut">Острый арахис</option>
+                    <option value="spice">Специи</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Описание *</label>
+                <div id="form-description-editor"></div>
+                <div class="form-error" id="form-description-error">Минимум 10 символов</div>
+            </div>
+
+            <div class="form-group">
+                <label>Состав</label>
+                <div id="form-composition-editor"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Объём</label>
+                <input type="text" id="form-volume" class="form-input" placeholder="Напр. 100 мл" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>Уровень остроты (1–5)</label>
+                <div class="heat-selector" id="heat-selector">
+                    <div class="heat-selector-dot" data-val="1">1</div>
+                    <div class="heat-selector-dot" data-val="2">2</div>
+                    <div class="heat-selector-dot active" data-val="3">3</div>
+                    <div class="heat-selector-dot" data-val="4">4</div>
+                    <div class="heat-selector-dot" data-val="5">5</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Порядок сортировки</label>
+                <input type="number" id="form-sort" class="form-input" value="0" min="0">
+            </div>
+
+            <div class="form-group">
+                <label>Статус</label>
+                <div class="toggle-label">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="form-active" checked>
+                        <div class="toggle-track"></div>
+                        <div class="toggle-thumb"></div>
+                    </label>
+                    <span class="toggle-status" id="toggle-status-text">Активен</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Наличие</label>
+                <div class="toggle-label">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="form-in-stock" checked>
+                        <div class="toggle-track"></div>
+                        <div class="toggle-thumb"></div>
+                    </label>
+                    <span class="toggle-status" id="toggle-in-stock-text">В наличии</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Бейджи</label>
+                <div class="toggle-label">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="form-is-hit">
+                        <div class="toggle-track"></div>
+                        <div class="toggle-thumb"></div>
+                    </label>
+                    <span class="toggle-status" id="toggle-hit-text">ХИТ</span>
+                </div>
+                <div class="toggle-label" style="margin-top:8px">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="form-is-low-stock">
+                        <div class="toggle-track"></div>
+                        <div class="toggle-thumb"></div>
+                    </label>
+                    <span class="toggle-status" id="toggle-low-stock-text">МАЛО</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Фото</label>
+                <div class="file-input-wrapper">
+                    <div class="file-input-label">
+                        <span class="file-input-label__icon">📷</span>
+                        <span>Нажмите для загрузки</span>
+                        <span style="font-size:11px;opacity:0.6">JPG, PNG, WebP</span>
+                    </div>
+                    <input type="file" id="form-image" accept="image/jpeg,image/png,image/webp">
+                </div>
+                <div class="image-preview-wrapper" id="image-preview-wrapper">
+                    <img id="form-image-preview" class="image-preview" alt="">
+                    <button type="button" class="image-remove-btn" id="image-remove-btn" title="Удалить фото" aria-label="Удалить фото">&times;</button>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" id="form-submit-btn" class="btn-save">
+                    <span class="btn-spinner"></span>
+                    <span class="btn-text">СОХРАНИТЬ</span>
+                </button>
+                <button type="button" id="form-delete-btn" class="btn btn-ghost-red btn-block" style="display:none">
+                    Удалить соус
+                </button>
+                <button type="button" id="form-cancel" class="btn btn-secondary btn-block">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Confirm delete dialog -->
+<div id="confirm-overlay" class="form-modal-overlay" style="align-items:center;justify-content:center;">
+    <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+        <h2 class="confirm-dialog__title" id="confirm-dialog-title">Удалить соус?</h2>
+        <p id="confirm-text" class="confirm-dialog__text"></p>
+        <div class="form-actions" style="flex-direction:row">
+            <button id="confirm-cancel" class="btn btn-secondary" style="flex:1">Отмена</button>
+            <button id="confirm-ok" class="btn btn-danger" style="flex:1">
+                <span class="btn-spinner"></span>
+                <span class="btn-text">Удалить</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Unsaved changes dialog -->
+<div id="unsaved-overlay" class="form-modal-overlay" style="align-items:center;justify-content:center;">
+    <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-dialog-title">
+        <h2 class="confirm-dialog__title" id="unsaved-dialog-title">Несохранённые изменения</h2>
+        <p class="confirm-dialog__text">Вы уверены, что хотите закрыть форму? Изменения будут потеряны.</p>
+        <div class="form-actions" style="flex-direction:row">
+            <button id="unsaved-cancel" class="btn btn-secondary" style="flex:1">Остаться</button>
+            <button id="unsaved-ok" class="btn btn-danger" style="flex:1">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast" aria-live="polite" role="status"></div>
+
+<script src="/js/admin.js?v=1.7.0" data-cfasync="false"></script>
+</body>
+</html>

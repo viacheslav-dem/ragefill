@@ -1,0 +1,17 @@
+{
+    "name": "ragefill/telegram-miniapp",
+    "description": "Ragefill - Telegram Mini App catalog of super hot sauces",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "slim/slim": "^4.0",
+        "slim/psr7": "^1.6",
+        "php-di/php-di": "^7.0",
+        "php-di/slim-bridge": "^3.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ragefill\\": "src/"
+        }
+    }
+}

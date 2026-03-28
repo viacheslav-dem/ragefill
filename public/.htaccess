@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Block direct access to HTML templates and internal files
+RewriteRule ^catalog\.html$ / [R=301,L]
+RewriteRule ^admin\.html$ /admin [R=301,L]
+RewriteRule ^test-cgi\.php$ - [R=403,L]
+
+# Redirect /index.php only when directly requested (not internally rewritten)
+RewriteCond %{THE_REQUEST} \s/index\.php[\s?]
+RewriteRule ^index\.php$ / [R=301,L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

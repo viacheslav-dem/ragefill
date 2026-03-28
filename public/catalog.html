@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{{SEO_TITLE}}</title>
+    {{SEO_META}}
+    <link rel="alternate" hreflang="ru-BY" href="https://ragefill.by/">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#1C1410">
+    <link rel="stylesheet" href="/css/style.css?v=3.0.0">
+    <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <div class="header__inner">
+        <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
+        <!-- Desktop search bar (synced with mobile search) -->
+        <div class="header__desktop-search">
+            <svg class="header__search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <input type="text" class="header__search-input" id="desktop-search-input" placeholder="Поиск по каталогу..." autocomplete="off">
+        </div>
+        <div class="header__actions">
+            <a href="/about" class="about-nav-link browser-only-link">О нас</a>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
+                <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Hero stripe (mobile only, browser only) -->
+<div class="hero-stripe">
+    <h1 class="hero-stripe__text">Каталог острых соусов RAGE FILL 🔥 (Минск, Беларусь)</h1>
+</div>
+
+<!-- Desktop hero banner (desktop only, browser only) -->
+<section class="desktop-hero">
+    <div class="desktop-hero__inner">
+        <h1 class="desktop-hero__title">Каталог острых соусов RAGE FILL 🔥 (Минск, Беларусь)</h1>
+        <p class="desktop-hero__subtitle">Авторские острые соусы ручной работы, маринованные перцы, сверхострые специи, подарочные наборы и острый арахис. Яркий вкус, натуральные ингредиенты и острота под любой вкус — от лёгкой до экстремальной. Идеальный выбор для мяса, пиццы, бургеров и закусок. Доставка по Минску и Беларуси.</p>
+    </div>
+</section>
+
+<!-- SEO intro text (browser only) -->
+<section class="seo-intro" aria-label="О бренде">
+    <p>Авторские острые соусы ручной работы, маринованные перцы, сверхострые специи, подарочные наборы и острый арахис. Яркий вкус, натуральные ингредиенты и острота под любой вкус — от лёгкой до экстремальной. Идеальный выбор для мяса, пиццы, бургеров и закусок. Доставка по Минску и Беларуси.</p>
+</section>
+
+<main id="main-content">
+
+<!-- Mobile toolbar: search + filters (hidden on desktop) -->
+<search class="toolbar" id="toolbar">
+    <div class="toolbar__row">
+        <div class="toolbar__search">
+            <svg class="toolbar__search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <input type="text" class="toolbar__search-input" id="search-input" placeholder="Найти..." autocomplete="off">
+        </div>
+        <button class="toolbar__filter-btn" id="filter-toggle-btn" aria-expanded="false" aria-controls="filter-dropdown" aria-label="Фильтры">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="toolbar__filter-badge" id="filter-badge"></span>
+        </button>
+    </div>
+    <div class="toolbar__dropdown" id="filter-dropdown">
+        <div class="toolbar__dropdown-group">
+            <label class="toolbar__dropdown-label">Категория</label>
+            <div class="toolbar__heat-chips" id="category-chips" role="radiogroup" aria-label="Фильтр по категории">
+                <button class="toolbar__chip active" data-category="all" role="radio" aria-checked="true">Все</button>
+                <button class="toolbar__chip" data-category="sauce" role="radio" aria-checked="false">Соусы</button>
+                <button class="toolbar__chip" data-category="gift_set" role="radio" aria-checked="false">Подарочные наборы</button>
+                <button class="toolbar__chip" data-category="pickled_pepper" role="radio" aria-checked="false">Маринованные перцы</button>
+                <button class="toolbar__chip" data-category="spicy_peanut" role="radio" aria-checked="false">Острый арахис</button>
+                <button class="toolbar__chip" data-category="spice" role="radio" aria-checked="false">Специи</button>
+            </div>
+        </div>
+        <div class="toolbar__dropdown-group">
+            <label class="toolbar__dropdown-label">Острота</label>
+            <div class="toolbar__heat-chips" id="filter-chips" role="radiogroup" aria-label="Фильтр по остроте">
+                <button class="toolbar__chip active" data-filter="all" role="radio" aria-checked="true">Все</button>
+                <button class="toolbar__chip" data-filter="extreme" role="radio" aria-checked="false">Боль</button>
+                <button class="toolbar__chip" data-filter="fire" role="radio" aria-checked="false">Сильная</button>
+                <button class="toolbar__chip" data-filter="hot" role="radio" aria-checked="false">Средняя</button>
+                <button class="toolbar__chip" data-filter="medium" role="radio" aria-checked="false">Умеренная</button>
+                <button class="toolbar__chip" data-filter="mild" role="radio" aria-checked="false">Лёгкая</button>
+            </div>
+        </div>
+        <div class="toolbar__dropdown-group">
+            <label class="toolbar__dropdown-label">Наличие</label>
+            <div class="toolbar__heat-chips" id="stock-toggle" role="radiogroup" aria-label="Фильтр по наличию">
+                <button class="toolbar__chip active" data-stock="all" role="radio" aria-checked="true">Все</button>
+                <button class="toolbar__chip toolbar__chip--stock-in" data-stock="in_stock" role="radio" aria-checked="false">В наличии</button>
+                <button class="toolbar__chip toolbar__chip--stock-out" data-stock="out_of_stock" role="radio" aria-checked="false">Нет</button>
+            </div>
+        </div>
+        <button class="toolbar__reset-btn" id="toolbar-reset-btn">Сбросить фильтры</button>
+    </div>
+    <div class="toolbar__hint" id="search-hint"></div>
+</search>
+
+<!-- Catalog layout wrapper (sidebar + grid on desktop) -->
+<div class="catalog-layout">
+
+    <!-- Desktop filter sidebar (hidden on mobile) -->
+    <aside class="catalog-sidebar" id="catalog-sidebar">
+        <div class="catalog-sidebar__section">
+            <h3 class="catalog-sidebar__title">Категория</h3>
+            <div class="catalog-sidebar__options" id="sidebar-category" role="radiogroup" aria-label="Фильтр по категории">
+                <button class="catalog-sidebar__option active" data-category="all" role="radio" aria-checked="true">
+                    <span class="catalog-sidebar__radio"></span>
+                    Все категории
+                </button>
+                <button class="catalog-sidebar__option" data-category="sauce" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    Соусы
+                </button>
+                <button class="catalog-sidebar__option" data-category="gift_set" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    Подарочные наборы
+                </button>
+                <button class="catalog-sidebar__option" data-category="pickled_pepper" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    Маринованные перцы
+                </button>
+                <button class="catalog-sidebar__option" data-category="spicy_peanut" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    Острый арахис
+                </button>
+                <button class="catalog-sidebar__option" data-category="spice" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    Специи
+                </button>
+            </div>
+        </div>
+        <div class="catalog-sidebar__divider"></div>
+        <div class="catalog-sidebar__section">
+            <h3 class="catalog-sidebar__title">Уровень остроты</h3>
+            <div class="catalog-sidebar__options" id="sidebar-heat" role="radiogroup" aria-label="Фильтр по остроте">
+                <button class="catalog-sidebar__option active" data-filter="all" role="radio" aria-checked="true">
+                    <span class="catalog-sidebar__radio"></span>
+                    Все уровни
+                </button>
+                <button class="catalog-sidebar__option" data-filter="extreme" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    <span class="catalog-sidebar__dot catalog-sidebar__dot--extreme"></span>
+                    Экстремальная
+                </button>
+                <button class="catalog-sidebar__option" data-filter="fire" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    <span class="catalog-sidebar__dot catalog-sidebar__dot--fire"></span>
+                    Сильная
+                </button>
+                <button class="catalog-sidebar__option" data-filter="hot" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    <span class="catalog-sidebar__dot catalog-sidebar__dot--hot"></span>
+                    Средняя
+                </button>
+                <button class="catalog-sidebar__option" data-filter="medium" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    <span class="catalog-sidebar__dot catalog-sidebar__dot--medium"></span>
+                    Умеренная
+                </button>
+                <button class="catalog-sidebar__option" data-filter="mild" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    <span class="catalog-sidebar__dot catalog-sidebar__dot--mild"></span>
+                    Лёгкая
+                </button>
+            </div>
+        </div>
+        <div class="catalog-sidebar__divider"></div>
+        <div class="catalog-sidebar__section">
+            <h3 class="catalog-sidebar__title">Наличие</h3>
+            <div class="catalog-sidebar__options" id="sidebar-stock" role="radiogroup" aria-label="Фильтр по наличию">
+                <button class="catalog-sidebar__option active" data-stock="all" role="radio" aria-checked="true">
+                    <span class="catalog-sidebar__radio"></span>
+                    Все товары
+                </button>
+                <button class="catalog-sidebar__option" data-stock="in_stock" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    <span class="catalog-sidebar__indicator catalog-sidebar__indicator--in"></span>
+                    В наличии
+                </button>
+                <button class="catalog-sidebar__option" data-stock="out_of_stock" role="radio" aria-checked="false">
+                    <span class="catalog-sidebar__radio"></span>
+                    <span class="catalog-sidebar__indicator catalog-sidebar__indicator--out"></span>
+                    Нет в наличии
+                </button>
+            </div>
+        </div>
+        <button class="catalog-sidebar__reset" id="sidebar-reset-btn">Сбросить все фильтры</button>
+    </aside>
+
+    <!-- Product grid -->
+    <section class="catalog-section" aria-label="Товары">
+        <div class="catalog-section__topbar">
+            <h2 class="visually-hidden" id="catalog-heading">Острые соусы</h2>
+            <div class="catalog-section__results" id="desktop-results-count"></div>
+        </div>
+        <div id="catalog" class="catalog" role="list" aria-labelledby="catalog-heading">{{SSR_PRODUCTS}}</div>
+    </section>
+
+</div>
+
+{{SEO_JSONLD}}
+
+</main>
+
+<!-- Product detail modal -->
+<div id="modal-overlay" class="modal-overlay">
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-name">
+        <div class="modal__top-bar">
+            <div class="modal__handle"></div>
+            <button class="modal__close" id="modal-close-btn" aria-label="Закрыть">&times;</button>
+        </div>
+        <div class="modal__layout">
+            <div id="modal-image-container" class="modal__image-wrapper"></div>
+            <div class="modal__content">
+                <h2 id="modal-name" class="modal__name"></h2>
+                <div id="modal-subtitle" class="modal__subtitle"></div>
+
+                <div id="modal-stock" class="modal__stock-badge modal__stock-badge--in">В наличии</div>
+
+                <div id="modal-peppers" class="modal__peppers">
+                    <span class="modal__pepper-icons"></span>
+                    <span class="modal__pepper-label"></span>
+                </div>
+
+                <div id="modal-description" class="modal__description collapsed"></div>
+                <button id="modal-read-more" class="modal__read-more" aria-expanded="false" aria-controls="modal-description">Читать далее</button>
+
+                <div id="modal-composition" class="modal__info-block" style="display:none">
+                    <div class="modal__divider"></div>
+                    <div class="modal__info-label">Состав</div>
+                    <div id="modal-composition-value" class="modal__info-value"></div>
+                </div>
+
+                <div id="modal-volume" style="display:none">
+                    <span id="modal-volume-value" class="modal__volume-pill"></span>
+                </div>
+
+                <button class="modal__contact-btn" id="modal-contact-btn">
+                    Написать продавцу
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__brand">
+            <div class="site-footer__logo">
+                <span class="site-footer__logo-rage">RAGE</span>
+                <span class="site-footer__logo-fill">FILL</span>
+            </div>
+            <div class="site-footer__text">Острые соусы ручной работы, Беларусь</div>
+        </div>
+        <div class="site-footer__contact">
+            <h4 class="site-footer__heading">Контакты</h4>
+            <nav class="site-footer__links" aria-label="Контакты">
+                <a href="https://t.me/rage_fill" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>
+                    Telegram
+                </a>
+                <a href="https://instagram.com/ragefill.by" target="_blank" rel="noopener noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                    Instagram
+                </a>
+            </nav>
+        </div>
+        <div class="site-footer__about">
+            <h4 class="site-footer__heading">О продукте</h4>
+            <p class="site-footer__about-text">Все соусы изготавливаются вручную из свежих перцев. Для заказа свяжитесь с нами через Telegram.</p>
+        </div>
+    </div>
+    <div class="site-footer__bottom">
+        <div class="site-footer__copy">&copy; <span id="footer-year">2026</span> RAGEFILL. Все права защищены.</div>
+    </div>
+</footer>
+
+<script src="/js/catalog.js?v=2.0.0" data-cfasync="false"></script>
+</body>
+</html>
