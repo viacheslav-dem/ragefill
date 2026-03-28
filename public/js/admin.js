@@ -9,6 +9,8 @@ let currentHeat = 5;
 let formDirty = false;
 let removeImage = false;
 let editingId = null;
+let additionalImages = []; // [{file: File|null, url: string, filename: string|null}]
+let deletedImages = [];
 
 // --- Elements ---
 const loginScreen = document.getElementById('login-screen');
@@ -381,6 +383,15 @@ function openForm(sauce = null) {
         previewWrapper.classList.remove('visible');
     }
 
+    // Additional images
+    additionalImages = [];
+    deletedImages = [];
+    if (sauce && sauce.images) {
+        const imgs = typeof sauce.images === 'string' ? JSON.parse(sauce.images || '[]') : (sauce.images || []);
+        additionalImages = imgs.map(fn => ({ file: null, url: '/uploads/' + fn, filename: fn }));
+    }
+    renderAdditionalImages();
+
     formOverlay.classList.add('active');
 
     // Track dirty state
@@ -536,6 +547,14 @@ sauceForm.addEventListener('submit', async (e) => {
     if (imageFile) {
         formData.append('image', imageFile);
     }
+
+    // Additional images
+    const existingImgs = additionalImages.filter(img => img.filename).map(img => img.filename);
+    formData.append('existing_images', JSON.stringify(existingImgs));
+    formData.append('delete_images', JSON.stringify(deletedImages));
+    additionalImages.filter(img => img.file).forEach(img => {
+        formData.append('additional_images[]', img.file);
+    });
 
     const url = id ? `${API_BASE}/admin/sauces/${id}` : `${API_BASE}/admin/sauces`;
 
@@ -700,3 +719,74 @@ sauceList.addEventListener('click', (e) => {
     const deleteBtn = e.target.closest('[data-delete-id]');
     if (deleteBtn) { confirmDelete(parseInt(deleteBtn.dataset.deleteId)); return; }
 });
+
+// === Additional Images ===
+function renderAdditionalImages() {
+    const list = document.getElementById('additional-images-list');
+    if (!list) return;
+    if (additionalImages.length === 0) { list.innerHTML = ''; return; }
+    list.innerHTML = additionalImages.map((img, i) => `
+        <div class="additional-image-item" draggable="true" data-index="${i}">
+            <img src="${img.url}" alt="Фото ${i + 1}">
+            <button type="button" class="additional-image-item__remove" data-rm="${i}" title="Удалить">&times;</button>
+            <span class="additional-image-item__order">${i + 1}</span>
+        </div>
+    `).join('');
+    setupDragReorder(list);
+}
+
+document.getElementById('additional-images-list').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-rm]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.rm);
+    const removed = additionalImages.splice(idx, 1)[0];
+    if (removed.filename) deletedImages.push(removed.filename);
+    if (removed.file) URL.revokeObjectURL(removed.url);
+    renderAdditionalImages();
+    formDirty = true;
+});
+
+document.getElementById('form-additional-images').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    const remaining = 10 - additionalImages.length;
+    if (remaining <= 0) { e.target.value = ''; return; }
+    files.slice(0, remaining).forEach(file => {
+        const url = URL.createObjectURL(file);
+        additionalImages.push({ file, url, filename: null });
+    });
+    renderAdditionalImages();
+    e.target.value = '';
+    formDirty = true;
+});
+
+function setupDragReorder(container) {
+    let dragIdx = null;
+    container.querySelectorAll('.additional-image-item').forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+            dragIdx = parseInt(item.dataset.index);
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            container.querySelectorAll('.additional-image-item').forEach(x => x.classList.remove('drag-over'));
+            dragIdx = null;
+        });
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            item.classList.add('drag-over');
+        });
+        item.addEventListener('dragleave', () => { item.classList.remove('drag-over'); });
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+            const dropIdx = parseInt(item.dataset.index);
+            if (dragIdx === null || dragIdx === dropIdx) return;
+            const [moved] = additionalImages.splice(dragIdx, 1);
+            additionalImages.splice(dropIdx, 0, moved);
+            renderAdditionalImages();
+            formDirty = true;
+        });
+    });
+}

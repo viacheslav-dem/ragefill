@@ -54,6 +54,9 @@ class Database
             if (!in_array('is_low_stock', $colNames, true)) {
                 $this->pdo->exec("ALTER TABLE sauces ADD COLUMN is_low_stock INTEGER NOT NULL DEFAULT 0 CHECK(is_low_stock IN (0, 1))");
             }
+            if (!in_array('images', $colNames, true)) {
+                $this->pdo->exec("ALTER TABLE sauces ADD COLUMN images TEXT NOT NULL DEFAULT '[]'");
+            }
             if (!in_array('slug', $colNames, true)) {
                 $this->pdo->exec("ALTER TABLE sauces ADD COLUMN slug TEXT NOT NULL DEFAULT ''");
                 // Backfill slugs from existing names
@@ -82,6 +85,7 @@ class Database
                 category TEXT NOT NULL DEFAULT 'sauce',
                 is_hit INTEGER NOT NULL DEFAULT 0 CHECK(is_hit IN (0, 1)),
                 is_low_stock INTEGER NOT NULL DEFAULT 0 CHECK(is_low_stock IN (0, 1)),
+                images TEXT NOT NULL DEFAULT '[]',
                 slug TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -131,8 +135,8 @@ class Database
         $slug = $this->ensureUniqueSlug($slug, null);
 
         $stmt = $this->pdo->prepare("
-            INSERT INTO sauces (name, subtitle, description, composition, volume, image, heat_level, sort_order, is_active, in_stock, category, is_hit, is_low_stock, slug)
-            VALUES (:name, :subtitle, :description, :composition, :volume, :image, :heat_level, :sort_order, :is_active, :in_stock, :category, :is_hit, :is_low_stock, :slug)
+            INSERT INTO sauces (name, subtitle, description, composition, volume, image, images, heat_level, sort_order, is_active, in_stock, category, is_hit, is_low_stock, slug)
+            VALUES (:name, :subtitle, :description, :composition, :volume, :image, :images, :heat_level, :sort_order, :is_active, :in_stock, :category, :is_hit, :is_low_stock, :slug)
         ");
 
         $stmt->execute([
@@ -142,6 +146,7 @@ class Database
             'composition' => trim((string)($data['composition'] ?? '')),
             'volume' => trim((string)($data['volume'] ?? '')),
             'image' => $data['image'] ?? null,
+            'images' => $data['images'] ?? '[]',
             'heat_level' => self::clampHeat($data['heat_level'] ?? 3),
             'sort_order' => max(0, (int)($data['sort_order'] ?? 0)),
             'is_active' => in_array($data['is_active'] ?? 1, [0, '0'], true) ? 0 : 1,
@@ -174,6 +179,7 @@ class Database
             'composition' => fn($v) => trim((string)$v),
             'volume' => fn($v) => trim((string)$v),
             'image' => fn($v) => $v, // null or string
+            'images' => fn($v) => $v, // JSON string
             'heat_level' => fn($v) => self::clampHeat($v),
             'sort_order' => fn($v) => max(0, (int)$v),
             'is_active' => fn($v) => in_array($v, [0, '0'], true) ? 0 : 1,

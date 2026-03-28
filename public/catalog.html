@@ -12,8 +12,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#1C1410">
-    <link rel="stylesheet" href="/css/style.css?v=4.0.0">
+    <link rel="stylesheet" href="/css/style.css?v=4.1.0">
     <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" data-cfasync="false" defer integrity="sha384-wOEPXUPSyrMbp2EMFMIutzG3IUHM+drFl4sSC4J1jCiEAPDY+bLER0RXS/BhBHMw" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -109,7 +110,7 @@
         </div>
         <button class="toolbar__reset-btn" id="toolbar-reset-btn">Сбросить фильтры</button>
     </div>
-    <div class="toolbar__hint" id="search-hint"></div>
+    <div class="toolbar__hint" id="search-hint" aria-live="polite" aria-atomic="true"></div>
 </search>
 
 <!-- Catalog layout wrapper (sidebar + grid on desktop) -->
@@ -208,7 +209,7 @@
     <section class="catalog-section" aria-label="Товары">
         <div class="catalog-section__topbar">
             <h2 class="visually-hidden" id="catalog-heading">Острые соусы</h2>
-            <div class="catalog-section__results" id="desktop-results-count"></div>
+            <div class="catalog-section__results" id="desktop-results-count" aria-live="polite" aria-atomic="true"></div>
         </div>
         <div id="catalog" class="catalog" role="list" aria-labelledby="catalog-heading">{{SSR_PRODUCTS}}</div>
     </section>
@@ -221,7 +222,7 @@
 
 <!-- Product detail modal -->
 <div id="modal-overlay" class="modal-overlay">
-    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-name">
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-name" aria-describedby="modal-description">
         <div class="modal__top-bar">
             <div class="modal__handle"></div>
             <button class="modal__close" id="modal-close-btn" aria-label="Закрыть">&times;</button>

@@ -157,6 +157,22 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         }
 
         $data['image'] = $imageName;
+
+        // Handle additional images upload
+        $additionalImages = [];
+        if (isset($files['additional_images'])) {
+            $uploads = is_array($files['additional_images']) ? $files['additional_images'] : [$files['additional_images']];
+            foreach (array_slice($uploads, 0, 10) as $file) {
+                if ($file->getError() === UPLOAD_ERR_OK) {
+                    $imgName = handleUpload($file, $config);
+                    if ($imgName !== null) {
+                        $additionalImages[] = $imgName;
+                    }
+                }
+            }
+        }
+        $data['images'] = json_encode($additionalImages);
+
         $id = $db->createSauce($data);
 
         $sauce = $db->getSauceById($id);
@@ -195,6 +211,38 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         }
 
         unset($data['remove_image']);
+
+        // Handle additional images
+        $currentImages = json_decode($sauce['images'] ?? '[]', true) ?: [];
+        $existingImages = isset($data['existing_images']) ? (json_decode($data['existing_images'], true) ?: []) : $currentImages;
+        $deleteImgs = isset($data['delete_images']) ? (json_decode($data['delete_images'], true) ?: []) : [];
+
+        // Delete removed images from disk
+        foreach ($deleteImgs as $delImg) {
+            if (in_array($delImg, $currentImages, true)) {
+                deleteImageFile($delImg, $config);
+            }
+        }
+
+        // Upload new additional images
+        $newImages = [];
+        if (isset($files['additional_images'])) {
+            $uploads = is_array($files['additional_images']) ? $files['additional_images'] : [$files['additional_images']];
+            foreach (array_slice($uploads, 0, 10) as $file) {
+                if ($file->getError() === UPLOAD_ERR_OK) {
+                    $imgName = handleUpload($file, $config);
+                    if ($imgName !== null) {
+                        $newImages[] = $imgName;
+                    }
+                }
+            }
+        }
+
+        // Final list: kept existing (in order) + newly uploaded
+        $keptImages = array_values(array_filter($existingImages, fn($img) => !in_array($img, $deleteImgs, true)));
+        $data['images'] = json_encode(array_merge($keptImages, $newImages));
+        unset($data['existing_images'], $data['delete_images']);
+
         $db->updateSauce($id, $data);
         $updated = $db->getSauceById($id);
         $response->getBody()->write(json_encode($updated, JSON_UNESCAPED_UNICODE));
@@ -211,6 +259,10 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         }
 
         deleteImageFile($sauce['image'], $config);
+        $additionalImages = json_decode($sauce['images'] ?? '[]', true) ?: [];
+        foreach ($additionalImages as $img) {
+            deleteImageFile($img, $config);
+        }
         $db->deleteSauce($id);
 
         $response->getBody()->write(json_encode(['success' => true]));
@@ -460,9 +512,40 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
 
     $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
 
-    $image = !empty($sauce['image'])
-        ? '<img class="product-page__image" src="/uploads/' . htmlspecialchars($sauce['image'], ENT_QUOTES, 'UTF-8') . '" alt="' . $name . '">'
-        : '';
+    // Build gallery images: main + additional
+    $additionalImgs = json_decode($sauce['images'] ?? '[]', true) ?: [];
+    $allImages = [];
+    if (!empty($sauce['image'])) {
+        $allImages[] = $sauce['image'];
+    }
+    $allImages = array_merge($allImages, $additionalImgs);
+
+    // Build lightbox data attribute
+    $lightboxSrcs = [];
+    if (count($allImages) > 0) {
+        foreach ($allImages as $img) {
+            $lightboxSrcs[] = '/uploads/' . htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
+        }
+        $mainSrc = $lightboxSrcs[0];
+        $lightboxData = htmlspecialchars(json_encode($lightboxSrcs), ENT_QUOTES, 'UTF-8');
+        $image = '<img class="product-page__image product-page__image--clickable" id="gallery-main-img" src="' . $mainSrc . '" alt="' . $name . '" data-gallery="' . $lightboxData . '" role="button" tabindex="0" aria-label="Открыть фото">';
+
+        $thumbsHtml = '';
+        if (count($allImages) > 1) {
+            $thumbsHtml = '<div class="product-page__thumbs">';
+            foreach ($allImages as $i => $img) {
+                $src = $lightboxSrcs[$i];
+                $activeClass = $i === 0 ? ' active' : '';
+                $thumbsHtml .= '<button class="product-page__thumb' . $activeClass . '" data-src="' . $src . '" data-index="' . $i . '" aria-label="Фото ' . ($i + 1) . '">'
+                    . '<img src="' . $src . '" alt="' . $name . ' — фото ' . ($i + 1) . '" loading="lazy">'
+                    . '</button>';
+            }
+            $thumbsHtml .= '</div>';
+        }
+    } else {
+        $image = '<div class="product-page__image-placeholder"></div>';
+        $thumbsHtml = '';
+    }
 
     $subtitleHtml = $subtitle ? '<p class="product-page__subtitle">' . $subtitle . '</p>' : '';
 
@@ -480,6 +563,13 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
     // Clean description HTML for display (strip all attributes to prevent XSS)
     $descHtml = sanitizeHtml($desc);
     $compHtml = $composition ? sanitizeHtml($composition) : '';
+
+    $descSection = trim($descHtml) ? <<<HTML
+        <div class="product-page__section">
+            <h2 class="product-page__section-title">Описание</h2>
+            <div class="product-page__text">{$descHtml}</div>
+        </div>
+    HTML : '';
 
     $compSection = $compHtml ? <<<HTML
         <div class="product-page__section">
@@ -531,28 +621,41 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <meta name="theme-color" content="#1C1410">
-        <link rel="stylesheet" href="/css/style.css?v=3.1.0">
+        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
         <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
         {$jsonLd}
         {$breadcrumbLd}
     </head>
     <body>
-        <header class="header">
+        <header class="header header--catalog">
             <div class="header__inner">
-                <a href="/" class="header__logo-link">
-                    <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
-                </a>
+                <a href="/" class="header__logo-link" aria-label="На главную"><div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div></a>
+                <nav class="header__nav browser-only-link" id="main-nav">
+                    <a href="/" class="header__nav-link">Главная</a>
+                    <a href="/catalog" class="header__nav-link">Каталог</a>
+                    <a href="/#faq" class="header__nav-link">FAQ</a>
+                </nav>
                 <div class="header__actions">
                     <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
                         <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                         <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
                     </button>
+                    <button class="burger-btn browser-only-link" id="burger-btn" aria-label="Меню" aria-expanded="false">
+                        <span class="burger-btn__line"></span>
+                        <span class="burger-btn__line"></span>
+                        <span class="burger-btn__line"></span>
+                    </button>
                 </div>
             </div>
         </header>
 
+        <main>
         <article class="product-page">
-            <nav class="product-page__breadcrumb" aria-label="Навигация">
+            <nav class="product-page__breadcrumb browser-only-link" aria-label="Навигация">
+                <a href="/">Главная</a>
+                <span class="product-page__breadcrumb-sep" aria-hidden="true">
+                    <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
                 <a href="/catalog">Каталог</a>
                 <span class="product-page__breadcrumb-sep" aria-hidden="true">
                     <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -565,6 +668,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
                     <div class="product-page__hero">
                         {$image}
                     </div>
+                    {$thumbsHtml}
                 </div>
 
                 <div class="product-page__details">
@@ -592,10 +696,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
 
                     <div class="product-page__divider"></div>
 
-                    <div class="product-page__section">
-                        <h2 class="product-page__section-title">Описание</h2>
-                        <div class="product-page__text">{$descHtml}</div>
-                    </div>
+                    {$descSection}
 
                     {$compSection}
 
@@ -610,17 +711,21 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
             </div>
         </article>
 
+        </main>
+
         {$footer}
 
-        <script>
-            const tg = window.Telegram?.WebApp;
+        <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
+        <script data-cfasync="false">
+            const _tgRaw = window.Telegram?.WebApp;
+            const tg = (_tgRaw && _tgRaw.initData) ? _tgRaw : null;
             if (tg) {
                 tg.ready();
                 tg.expand();
                 document.body.classList.add('tg-theme', 'tg-mode');
                 if (tg.colorScheme === 'dark') document.body.classList.add('tg-dark');
                 tg.BackButton.show();
-                tg.BackButton.onClick(() => { window.location.href = '/'; });
+                tg.BackButton.onClick(() => { window.location.href = '/catalog'; });
             } else {
                 document.body.classList.add('browser-mode');
             }
@@ -629,11 +734,83 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
             (function() {
                 const saved = localStorage.getItem('ragefill-theme');
                 if (saved === 'dark') document.body.classList.add('tg-dark');
+                else if (saved === 'light') document.body.classList.remove('tg-dark');
                 const btn = document.getElementById('theme-toggle');
                 if (!btn) return;
                 btn.addEventListener('click', () => {
                     const isDark = document.body.classList.toggle('tg-dark');
                     localStorage.setItem('ragefill-theme', isDark ? 'dark' : 'light');
+                });
+            })();
+
+            // Burger menu
+            (function(){
+                var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
+                if(!btn||!nav)return;
+                btn.addEventListener('click',function(){
+                    var open=nav.classList.toggle('open');
+                    btn.classList.toggle('open',open);
+                    btn.setAttribute('aria-expanded',String(open));
+                    document.body.classList.toggle('menu-open',open);
+                });
+                nav.querySelectorAll('a').forEach(function(a){
+                    a.addEventListener('click',function(){
+                        nav.classList.remove('open');btn.classList.remove('open');
+                        btn.setAttribute('aria-expanded','false');
+                        document.body.classList.remove('menu-open');
+                    });
+                });
+            })();
+
+            // Sticky gallery offset (match header height)
+            (function() {
+                var header = document.querySelector('.header');
+                var gallery = document.querySelector('.product-page__gallery');
+                if (!header || !gallery) return;
+                function update() { gallery.style.top = (header.offsetHeight + 16) + 'px'; }
+                update();
+                window.addEventListener('resize', update);
+            })();
+
+            // Gallery thumbnails + Lightbox
+            (function() {
+                var thumbs = document.querySelectorAll('.product-page__thumb');
+                var main = document.getElementById('gallery-main-img');
+                var currentIdx = 0;
+                if (!main) return;
+
+                var gallery = [];
+                try { gallery = JSON.parse(main.dataset.gallery || '[]'); } catch(e) {}
+
+                // Thumbnail clicks
+                thumbs.forEach(function(t) {
+                    t.addEventListener('click', function() {
+                        currentIdx = parseInt(t.dataset.index) || 0;
+                        main.style.opacity = '0';
+                        setTimeout(function() { main.src = t.dataset.src; main.style.opacity = '1'; }, 150);
+                        thumbs.forEach(function(x) { x.classList.remove('active'); });
+                        t.classList.add('active');
+                    });
+                });
+
+                if (gallery.length === 0) return;
+
+                function syncThumb(i) {
+                    currentIdx = i;
+                    main.src = gallery[i];
+                    thumbs.forEach(function(x) { x.classList.remove('active'); });
+                    if (thumbs[i]) thumbs[i].classList.add('active');
+                }
+
+                // Open lightbox on main image click
+                main.addEventListener('click', function() {
+                    Lightbox.open({ images: gallery, startIndex: currentIdx, onNavigate: syncThumb });
+                });
+                main.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        Lightbox.open({ images: gallery, startIndex: currentIdx, onNavigate: syncThumb });
+                    }
                 });
             })();
         </script>
@@ -649,26 +826,62 @@ function renderProductNotFound(): string
     <html lang="ru">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
         <title>Товар не найден — RAGEFILL</title>
         <meta name="robots" content="noindex">
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <meta name="theme-color" content="#1C1410">
-        <link rel="stylesheet" href="/css/style.css?v=1.9.0">
+        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
+        <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
     </head>
-    <body class="browser-mode">
+    <body>
         <header class="header">
-            <a href="/" class="header__logo-link">
-                <span class="header__logo"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></span>
-            </a>
+            <div class="header__inner">
+                <a href="/" class="header__logo-link" aria-label="На главную">
+                    <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
+                </a>
+                <div class="header__actions">
+                    <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
+                        <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                        <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    </button>
+                </div>
+            </div>
         </header>
-        <div class="empty-state" style="padding-top: 80px;">
-            <div class="empty-state__icon">🌶️</div>
-            <div class="empty-state__text">Товар не найден</div>
-            <div class="empty-state__hint">Возможно, он был удалён или скрыт</div>
-            <a href="/catalog" class="empty-state__btn">Вернуться в каталог</a>
-        </div>
+        <main>
+            <div class="empty-state" style="padding-top: 80px;">
+                <div class="empty-state__icon">🌶️</div>
+                <div class="empty-state__text">Товар не найден</div>
+                <div class="empty-state__hint">Возможно, он был удалён или скрыт</div>
+                <a href="/catalog" class="empty-state__btn">Вернуться в каталог</a>
+            </div>
+        </main>
+        <script data-cfasync="false">
+            var tg = window.Telegram && window.Telegram.WebApp;
+            if (tg && tg.initData) {
+                tg.ready(); tg.expand();
+                document.body.classList.add('tg-theme','tg-mode');
+                if (tg.colorScheme==='dark') document.body.classList.add('tg-dark');
+                tg.BackButton.show();
+                tg.BackButton.onClick(function(){ window.location.href='/'; });
+            } else {
+                document.body.classList.add('browser-mode');
+            }
+            (function(){
+                var saved=localStorage.getItem('ragefill-theme');
+                if(saved==='dark') document.body.classList.add('tg-dark');
+                var btn=document.getElementById('theme-toggle');
+                if(!btn) return;
+                btn.addEventListener('click',function(){
+                    var isDark=document.body.classList.toggle('tg-dark');
+                    localStorage.setItem('ragefill-theme',isDark?'dark':'light');
+                });
+            })();
+        </script>
     </body>
     </html>
     HTML;
@@ -818,19 +1031,22 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     }
 
     $reviewsHtml = '';
+    $reviewSrcs = [];
     if (!empty($reviewImages)) {
         foreach ($reviewImages as $idx => $img) {
             $src = '/uploads/reviews/' . htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
+            $reviewSrcs[] = $src;
             $delay = $idx * 80;
             $reviewsHtml .= <<<HTML
-                <a href="{$src}" class="home-review" target="_blank" rel="noopener" data-aos="fade-up" data-aos-delay="{$delay}">
+                <button type="button" class="home-review" data-review-index="{$idx}" data-aos="fade-up" data-aos-delay="{$delay}">
                     <img class="home-review__img" src="{$src}" alt="Отзыв клиента RAGE FILL" loading="lazy">
-                </a>
+                </button>
             HTML;
         }
     } else {
         $reviewsHtml = '<p class="home-reviews__empty">Скоро здесь появятся отзывы наших клиентов!</p>';
     }
+    $reviewSrcsJson = htmlspecialchars(json_encode($reviewSrcs), ENT_QUOTES, 'UTF-8');
 
     return <<<HTML
     <!DOCTYPE html>
@@ -848,7 +1064,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <meta name="theme-color" content="#1C1410">
-        <link rel="stylesheet" href="/css/style.css?v=4.0.0">
+        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
         <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
         {$faqJsonLd}
     </head>
@@ -922,8 +1138,16 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             <div class="home-container">
                 <h2 class="home-section__title" data-aos="fade-up">Отзывы</h2>
                 <p class="home-section__subtitle" data-aos="fade-up">Реальные отзывы наших клиентов из Instagram</p>
-                <div class="home-reviews">
-                    {$reviewsHtml}
+                <div class="home-reviews-slider" data-aos="fade-up">
+                    <button class="home-reviews-slider__nav home-reviews-slider__nav--prev" id="reviews-prev" aria-label="Назад">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <div class="home-reviews" id="home-reviews" data-gallery="{$reviewSrcsJson}">
+                        {$reviewsHtml}
+                    </div>
+                    <button class="home-reviews-slider__nav home-reviews-slider__nav--next" id="reviews-next" aria-label="Вперёд">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
                 </div>
                 <div class="home-reviews__cta" data-aos="fade-up">
                     <a href="https://instagram.com/ragefill.by" class="home-reviews__instagram" target="_blank" rel="noopener noreferrer">
@@ -987,9 +1211,33 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             </div>
         </footer>
 
+        <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
+        <script src="/js/slider.js?v=1.0.0" data-cfasync="false"></script>
         <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
         <script>
             AOS.init({ duration: 700, once: true, offset: 50 });
+
+            // Reviews slider + lightbox
+            (function() {
+                var container = document.getElementById('home-reviews');
+                if (!container) return;
+
+                Slider.init({
+                    track: container,
+                    prev: document.getElementById('reviews-prev'),
+                    next: document.getElementById('reviews-next'),
+                    autoPlay: 4000
+                });
+
+                var images = [];
+                try { images = JSON.parse(container.dataset.gallery || '[]'); } catch(e) {}
+                if (!images.length) return;
+                container.addEventListener('click', function(e) {
+                    var btn = e.target.closest('[data-review-index]');
+                    if (!btn) return;
+                    Lightbox.open({ images: images, startIndex: parseInt(btn.dataset.reviewIndex) || 0 });
+                });
+            })();
 
             // Theme toggle
             (function() {
@@ -1115,19 +1363,22 @@ function renderAboutPage(array $config, SeoHelper $seo): string
         sort($reviewImages);
     }
 
-    $reviewsHtml = '';
+    $aboutReviewsHtml = '';
+    $aboutReviewSrcs = [];
     if (!empty($reviewImages)) {
-        foreach ($reviewImages as $img) {
+        foreach ($reviewImages as $idx => $img) {
             $src = '/uploads/reviews/' . htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
-            $reviewsHtml .= <<<HTML
-                <a href="{$src}" class="about-review" target="_blank" rel="noopener">
+            $aboutReviewSrcs[] = $src;
+            $aboutReviewsHtml .= <<<HTML
+                <button type="button" class="about-review" data-review-index="{$idx}">
                     <img class="about-review__img" src="{$src}" alt="Отзыв клиента RAGE FILL" loading="lazy">
-                </a>
+                </button>
             HTML;
         }
     } else {
-        $reviewsHtml = '<p class="about-reviews__empty">Скоро здесь появятся отзывы наших клиентов!</p>';
+        $aboutReviewsHtml = '<p class="about-reviews__empty">Скоро здесь появятся отзывы наших клиентов!</p>';
     }
+    $aboutReviewSrcsJson = htmlspecialchars(json_encode($aboutReviewSrcs), ENT_QUOTES, 'UTF-8');
 
     $footer = renderFooter($config);
 
@@ -1145,7 +1396,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <meta name="theme-color" content="#1C1410">
-        <link rel="stylesheet" href="/css/style.css?v=3.2.0">
+        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
         {$faqJsonLd}
     </head>
     <body class="browser-mode about-page">
@@ -1179,8 +1430,8 @@ function renderAboutPage(array $config, SeoHelper $seo): string
             <section class="about-section about-reviews" aria-label="Отзывы">
                 <h2 class="about-section__title">Отзывы наших клиентов</h2>
                 <p class="about-section__subtitle">Реальные отзывы из Instagram</p>
-                <div class="about-reviews__grid">
-                    {$reviewsHtml}
+                <div class="about-reviews__grid" id="about-reviews" data-gallery="{$aboutReviewSrcsJson}">
+                    {$aboutReviewsHtml}
                 </div>
                 <a href="https://instagram.com/ragefill.by" class="about-reviews__instagram" target="_blank" rel="noopener noreferrer">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
@@ -1210,6 +1461,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
 
         {$footer}
 
+        <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
         <script>
             (function() {
                 const saved = localStorage.getItem('ragefill-theme');
@@ -1219,6 +1471,20 @@ function renderAboutPage(array $config, SeoHelper $seo): string
                 btn.addEventListener('click', () => {
                     const isDark = document.body.classList.toggle('tg-dark');
                     localStorage.setItem('ragefill-theme', isDark ? 'dark' : 'light');
+                });
+            })();
+
+            // Reviews lightbox
+            (function() {
+                var container = document.getElementById('about-reviews');
+                if (!container) return;
+                var images = [];
+                try { images = JSON.parse(container.dataset.gallery || '[]'); } catch(e) {}
+                if (!images.length) return;
+                container.addEventListener('click', function(e) {
+                    var btn = e.target.closest('[data-review-index]');
+                    if (!btn) return;
+                    Lightbox.open({ images: images, startIndex: parseInt(btn.dataset.reviewIndex) || 0 });
                 });
             })();
         </script>

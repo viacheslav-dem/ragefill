@@ -40,6 +40,7 @@ if (tg) {
 })();
 
 const API_BASE = '/api';
+const DESKTOP_BREAKPOINT = 1024;
 const catalogEl = document.getElementById('catalog');
 
 // Prevent SSR link navigation — JS will handle clicks via modals
@@ -62,18 +63,23 @@ let activeFilter = 'all';
 let stockFilter = 'all'; // 'all' | 'in_stock' | 'out_of_stock'
 let categoryFilter = 'all'; // 'all' | 'sauce' | 'gift_set' | 'pickled_pepper' | 'spicy_peanut' | 'spice'
 let searchDebounceTimer = null;
+let modalTriggerEl = null; // element that opened the modal, for focus return
 
 fetch(`${API_BASE}/settings`).then(r => r.json()).then(s => {
     if (s.contact_telegram) contactTelegram = s.contact_telegram;
 }).catch(() => {});
 
 // --- Heat helpers ---
+const HEAT_TIERS = [
+    { min: 5, id: 'extreme' },
+    { min: 4, id: 'fire' },
+    { min: 3, id: 'hot' },
+    { min: 2, id: 'medium' },
+    { min: 0, id: 'mild' },
+];
+
 function getHeatTier(level) {
-    if (level >= 5) return { label: 'ЭКСТРЕМАЛЬНАЯ', cls: 'tier-extreme', filter: 'extreme', accent: 'extreme' };
-    if (level >= 4) return { label: 'СИЛЬНАЯ', cls: 'tier-fire', filter: 'fire', accent: 'fire' };
-    if (level >= 3) return { label: 'СРЕДНЯЯ', cls: 'tier-hot', filter: 'hot', accent: 'hot' };
-    if (level >= 2) return { label: 'УМЕРЕННАЯ', cls: 'tier-medium', filter: 'medium', accent: 'medium' };
-    return { label: 'ЛЁГКАЯ', cls: 'tier-mild', filter: 'mild', accent: 'mild' };
+    return HEAT_TIERS.find(t => level >= t.min);
 }
 
 function renderPeppers(active, total) {
@@ -86,7 +92,7 @@ function renderPeppers(active, total) {
 
 // --- Skeleton ---
 function showSkeletons() {
-    const count = window.innerWidth >= 1024 ? 8 : window.innerWidth >= 768 ? 6 : 4;
+    const count = window.innerWidth >= DESKTOP_BREAKPOINT ? 8 : window.innerWidth >= 768 ? 6 : 4;
     catalogEl.innerHTML = Array.from({ length: count }, () => `
         <div class="skeleton-card">
             <div class="skeleton-image"></div>
@@ -105,7 +111,14 @@ async function loadCatalog() {
     try {
         const res = await fetch(`${API_BASE}/sauces`);
         allSauces = await res.json();
+        // Pre-compute plain-text for search (avoids DOMParser per keystroke)
+        allSauces.forEach(s => {
+            s._searchText = (s.name + ' ' + stripHtml(s.description) + ' ' + (s.composition || '')).toLowerCase();
+        });
+        // Animate cards only on load, not on filter changes
+        catalogEl.classList.add('catalog--animate');
         applyFilters();
+        setTimeout(() => catalogEl.classList.remove('catalog--animate'), 500);
     } catch (err) {
         catalogEl.innerHTML = `
             <div class="empty-state">
@@ -121,14 +134,14 @@ async function loadCatalog() {
 // --- Render ---
 function renderCatalog(sauces) {
     if (sauces.length === 0) {
-        const isSearch = searchInput.value.trim().length > 0 || activeFilter !== 'all' || stockFilter !== 'all' || categoryFilter !== 'all';
+        const hasActiveSearch = searchInput.value.trim().length > 0 || getActiveFilterCount() > 0;
         const emptyHint = 'Скоро здесь появятся товары';
         catalogEl.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state__icon">${isSearch ? '&#128269;' : '&#127798;&#65039;'}</div>
-                <div class="empty-state__text">${isSearch ? 'Ничего не найдено' : 'Каталог пока пуст'}</div>
-                <div class="empty-state__hint">${isSearch ? 'Попробуйте изменить запрос или сбросить фильтры' : emptyHint}</div>
-                ${isSearch ? '<button class="empty-state__btn" onclick="resetFilters()">Сбросить</button>' : ''}
+                <div class="empty-state__icon">${hasActiveSearch ? '&#128269;' : '&#127798;&#65039;'}</div>
+                <div class="empty-state__text">${hasActiveSearch ? 'Ничего не найдено' : 'Каталог пока пуст'}</div>
+                <div class="empty-state__hint">${hasActiveSearch ? 'Попробуйте изменить запрос или сбросить фильтры' : emptyHint}</div>
+                ${hasActiveSearch ? '<button class="empty-state__btn" onclick="resetFilters()">Сбросить</button>' : ''}
             </div>
         `;
         return;
@@ -141,12 +154,13 @@ function renderCatalog(sauces) {
             const sauce = allSauces.find(s => s.id == card.dataset.id);
             if (!sauce) return;
             // Desktop browser: navigate to product page
-            if (!tg && window.innerWidth >= 1024) {
-                const slug = card.dataset.slug || sauce.slug || sauce.id;
+            if (!tg && window.innerWidth >= DESKTOP_BREAKPOINT) {
+                const slug = card.dataset.slug;
                 window.location.href = `/sauce/${slug}`;
                 return;
             }
             // Mobile / Telegram: open modal
+            modalTriggerEl = card;
             haptic('impact', 'light');
             openModal(sauce);
         });
@@ -186,7 +200,7 @@ function renderCard(sauce, index) {
     const lowStockBadge = isLowStock ? '<span class="sauce-card__badge sauce-card__badge--low">МАЛО</span>' : '';
 
     return `
-        <div class="sauce-card${stockClass}" data-id="${sauce.id}" tabindex="0" role="listitem" aria-label="${esc(sauce.name)}" style="animation-delay:${delay}ms">
+        <div class="sauce-card${stockClass}" data-id="${sauce.id}" data-slug="${esc(sauce.slug || sauce.id)}" tabindex="0" role="listitem" aria-label="${esc(sauce.name)}" style="animation-delay:${delay}ms">
             <div class="sauce-card__image-wrap">
                 ${img}
                 ${stockBadge}
@@ -203,7 +217,7 @@ function renderCard(sauce, index) {
                     </div>
                 </div>
             </div>
-            <div class="sauce-card__heat-accent sauce-card__heat-accent--${tier.accent}"></div>
+            <div class="sauce-card__heat-accent sauce-card__heat-accent--${tier.id}"></div>
         </div>
     `;
 }
@@ -212,36 +226,34 @@ const stockToggle = document.getElementById('stock-toggle');
 
 const categoryChipsContainer = document.getElementById('category-chips');
 
+function syncRadioGroup(container, selector, dataAttr, activeValue) {
+    if (!container) return;
+    container.querySelectorAll(selector).forEach(el => {
+        const isMatch = el.dataset[dataAttr] === activeValue;
+        el.classList.toggle('active', isMatch);
+        el.setAttribute('aria-checked', String(isMatch));
+    });
+}
+
 function resetFilters() {
     searchInput.value = '';
     activeFilter = 'all';
     stockFilter = 'all';
     categoryFilter = 'all';
-    filterChipsContainer.querySelectorAll('.toolbar__chip').forEach(c => {
-        const isAll = c.dataset.filter === 'all';
-        c.classList.toggle('active', isAll);
-        c.setAttribute('aria-checked', String(isAll));
-    });
-    stockToggle.querySelectorAll('.toolbar__chip[data-stock]').forEach(c => {
-        const isAll = c.dataset.stock === 'all';
-        c.classList.toggle('active', isAll);
-        c.setAttribute('aria-checked', String(isAll));
-    });
-    categoryChipsContainer.querySelectorAll('.toolbar__chip').forEach(c => {
-        const isAll = c.dataset.category === 'all';
-        c.classList.toggle('active', isAll);
-        c.setAttribute('aria-checked', String(isAll));
-    });
+    syncRadioGroup(filterChipsContainer, '.toolbar__chip', 'filter', 'all');
+    syncRadioGroup(stockToggle, '.toolbar__chip[data-stock]', 'stock', 'all');
+    syncRadioGroup(categoryChipsContainer, '.toolbar__chip', 'category', 'all');
     updateFilterBadge();
     applyFilters();
+    syncSidebarFromState();
 }
 
-// --- Filter badge & dropdown ---
+function getActiveFilterCount() {
+    return (categoryFilter !== 'all') + (activeFilter !== 'all') + (stockFilter !== 'all');
+}
+
 function updateFilterBadge() {
-    let count = 0;
-    if (categoryFilter !== 'all') count++;
-    if (activeFilter !== 'all') count++;
-    if (stockFilter !== 'all') count++;
+    const count = getActiveFilterCount();
     filterBadge.textContent = count;
     filterBadge.classList.toggle('visible', count > 0);
     filterToggleBtn.classList.toggle('active', count > 0);
@@ -269,24 +281,45 @@ resetBtn.addEventListener('click', () => {
 });
 
 // --- Modal ---
-function openModal(sauce) {
-    const imgC = document.getElementById('modal-image-container');
+function setModalImage(sauce) {
+    const container = document.getElementById('modal-image-container');
     if (sauce.image) {
         const img = document.createElement('img');
         img.className = 'modal__image';
         img.src = `/uploads/${sauce.image}`;
         img.alt = sauce.name;
         img.addEventListener('error', function () {
-            const p = document.createElement('div');
-            p.className = 'modal__image-placeholder';
-            this.replaceWith(p);
+            const placeholder = document.createElement('div');
+            placeholder.className = 'modal__image-placeholder';
+            this.replaceWith(placeholder);
         });
-        imgC.innerHTML = '';
-        imgC.appendChild(img);
+        container.innerHTML = '';
+        container.appendChild(img);
     } else {
-        imgC.innerHTML = '<div class="modal__image-placeholder">&#127798;&#65039;</div>';
+        container.innerHTML = '<div class="modal__image-placeholder">&#127798;&#65039;</div>';
     }
+}
 
+function setRichContent(el, content) {
+    if (isHtmlContent(content)) {
+        el.innerHTML = cleanQuillHtml(content);
+    } else {
+        el.textContent = content;
+    }
+}
+
+function setOptionalBlock(blockId, valueId, content, renderFn) {
+    const block = document.getElementById(blockId);
+    if (!content) { block.style.display = 'none'; return; }
+    if (renderFn) renderFn(document.getElementById(valueId), content);
+    else document.getElementById(valueId).textContent = content;
+    block.style.display = 'block';
+}
+
+function openModal(sauce) {
+    const inStock = isInStock(sauce);
+
+    setModalImage(sauce);
     document.getElementById('modal-name').textContent = sauce.name;
 
     const subtitleEl = document.getElementById('modal-subtitle');
@@ -295,64 +328,39 @@ function openModal(sauce) {
         subtitleEl.style.display = sauce.subtitle ? 'block' : 'none';
     }
 
-    // Stock badge
     const stockEl = document.getElementById('modal-stock');
-    const inStock = isInStock(sauce);
     if (stockEl) {
-        if (inStock) {
-            stockEl.style.display = 'none';
-        } else {
-            stockEl.style.display = '';
+        stockEl.style.display = inStock ? 'none' : '';
+        if (!inStock) {
             stockEl.className = 'modal__stock-badge modal__stock-badge--out';
             stockEl.textContent = 'Нет в наличии';
         }
     }
 
-    const heat = sauce.heat_level;
-
-    // Modal peppers
     const modalPeppersEl = document.getElementById('modal-peppers');
     if (modalPeppersEl) {
-        const pIcons = modalPeppersEl.querySelector('.modal__pepper-icons');
-        const pLabel = modalPeppersEl.querySelector('.modal__pepper-label');
-        if (pIcons) pIcons.innerHTML = renderPeppers(heat, 5);
-        if (pLabel) pLabel.textContent = `Острота ${heat} из 5`;
+        const icons = modalPeppersEl.querySelector('.modal__pepper-icons');
+        const label = modalPeppersEl.querySelector('.modal__pepper-label');
+        if (icons) icons.innerHTML = renderPeppers(sauce.heat_level, 5);
+        if (label) label.textContent = `Острота ${sauce.heat_level} из 5`;
     }
 
     const descEl = document.getElementById('modal-description');
-    if (isHtmlContent(sauce.description)) {
-        descEl.innerHTML = cleanQuillHtml(sauce.description);
-    } else {
-        descEl.textContent = sauce.description;
-    }
+    setRichContent(descEl, sauce.description);
     descEl.classList.add('collapsed');
-    const readBtn = document.getElementById('modal-read-more');
-    readBtn.textContent = 'Читать далее';
-    readBtn.setAttribute('aria-expanded', 'false');
-    readBtn.classList.remove('visible');
 
+    const readMoreBtn = document.getElementById('modal-read-more');
+    readMoreBtn.textContent = 'Читать далее';
+    readMoreBtn.setAttribute('aria-expanded', 'false');
+    readMoreBtn.classList.remove('visible');
     requestAnimationFrame(() => {
-        if (descEl.scrollHeight > descEl.clientHeight + 2) readBtn.classList.add('visible');
+        if (descEl.scrollHeight > descEl.clientHeight + 2) readMoreBtn.classList.add('visible');
     });
 
-    const comp = document.getElementById('modal-composition');
-    if (sauce.composition) {
-        const compEl = document.getElementById('modal-composition-value');
-        if (isHtmlContent(sauce.composition)) {
-            compEl.innerHTML = cleanQuillHtml(sauce.composition);
-        } else {
-            compEl.textContent = sauce.composition;
-        }
-        comp.style.display = 'block';
-    } else { comp.style.display = 'none'; }
+    setOptionalBlock('modal-composition', 'modal-composition-value', sauce.composition,
+        (el, val) => setRichContent(el, val));
+    setOptionalBlock('modal-volume', 'modal-volume-value', sauce.volume);
 
-    const vol = document.getElementById('modal-volume');
-    if (sauce.volume) {
-        document.getElementById('modal-volume-value').textContent = sauce.volume;
-        vol.style.display = 'block';
-    } else { vol.style.display = 'none'; }
-
-    // Update contact button based on stock
     const contactBtn = document.getElementById('modal-contact-btn');
     if (contactBtn) {
         contactBtn.textContent = inStock ? 'Написать продавцу' : 'Узнать о наличии';
@@ -362,7 +370,6 @@ function openModal(sauce) {
     modalOverlay.classList.add('active');
     document.body.classList.add('modal-open');
 
-    // Focus trap: focus first interactive element
     requestAnimationFrame(() => {
         const firstFocusable = modal.querySelector('button, [href], input, [tabindex]:not([tabindex="-1"])');
         if (firstFocusable) firstFocusable.focus();
@@ -376,13 +383,15 @@ function closeModal() {
     document.body.classList.remove('modal-open');
     haptic('impact', 'light');
     if (tg) { tg.BackButton.hide(); tg.BackButton.offClick(closeModal); }
+    if (modalTriggerEl) { modalTriggerEl.focus(); modalTriggerEl = null; }
 }
 
 document.getElementById('modal-read-more').addEventListener('click', () => {
-    const d = document.getElementById('modal-description');
-    const b = document.getElementById('modal-read-more');
-    if (d.classList.contains('collapsed')) { d.classList.remove('collapsed'); b.textContent = 'Свернуть'; b.setAttribute('aria-expanded', 'true'); }
-    else { d.classList.add('collapsed'); b.textContent = 'Читать далее'; b.setAttribute('aria-expanded', 'false'); }
+    const desc = document.getElementById('modal-description');
+    const btn = document.getElementById('modal-read-more');
+    const collapsed = desc.classList.toggle('collapsed');
+    btn.textContent = collapsed ? 'Читать далее' : 'Свернуть';
+    btn.setAttribute('aria-expanded', String(!collapsed));
 });
 
 document.getElementById('modal-close-btn').addEventListener('click', (e) => { e.stopPropagation(); closeModal(); });
@@ -449,8 +458,8 @@ function getFilteredSauces() {
     const q = searchInput.value.trim().toLowerCase();
     let list = allSauces;
     if (categoryFilter !== 'all') list = list.filter(s => (s.category || 'sauce') === categoryFilter);
-    if (q) list = list.filter(s => s.name.toLowerCase().includes(q) || stripHtml(s.description).toLowerCase().includes(q) || (s.composition && s.composition.toLowerCase().includes(q)));
-    if (activeFilter !== 'all') list = list.filter(s => getHeatTier(s.heat_level).filter === activeFilter);
+    if (q) list = list.filter(s => s._searchText.includes(q));
+    if (activeFilter !== 'all') list = list.filter(s => getHeatTier(s.heat_level).id === activeFilter);
     if (stockFilter === 'in_stock') list = list.filter(isInStock);
     if (stockFilter === 'out_of_stock') list = list.filter(s => !isInStock(s));
     // Out of stock items go to the bottom
@@ -465,12 +474,13 @@ function applyFilters() {
     const q = searchInput.value.trim();
     if (q.length > 0) {
         const count = filtered.length;
-        const word = count === 0 ? 'результатов' : count === 1 ? 'результат' : count < 5 ? 'результата' : 'результатов';
-        searchHint.textContent = `${count} ${word}`;
+        searchHint.textContent = `${count} ${plural(count, 'результат', 'результата', 'результатов')}`;
     } else {
         searchHint.textContent = '';
     }
     renderCatalog(filtered);
+    updateDesktopResults(filtered.length);
+    syncSidebarFromState();
 }
 
 searchInput.addEventListener('input', () => {
@@ -541,19 +551,26 @@ function cleanQuillHtml(html) {
     clean = clean.replace(/<p><br><\/p>/gi, '');
     clean = clean.replace(/<br><\/p>/gi, '</p>');
     clean = clean.replace(/<p>\s*<\/p>/gi, '');
-    return clean.trim();
+    return DOMPurify.sanitize(clean.trim(), {
+        ALLOWED_TAGS: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li', 'span'],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    });
 }
 
 function stripHtml(html) {
-    const d = document.createElement('div');
-    d.innerHTML = html || '';
-    return d.textContent || '';
+    const doc = new DOMParser().parseFromString(html || '', 'text/html');
+    return doc.body.textContent || '';
+}
+
+function plural(n, one, few, many) {
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+    return many;
 }
 
 function esc(text) {
-    const d = document.createElement('div');
-    d.textContent = text || '';
-    return d.innerHTML;
+    return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 const footerYear = document.getElementById('footer-year');
@@ -588,87 +605,32 @@ if (searchInput && desktopSearchInput) {
     });
 }
 
-// Desktop sidebar heat filter
-if (sidebarHeat) {
-    sidebarHeat.addEventListener('click', (e) => {
-        const opt = e.target.closest('.catalog-sidebar__option');
-        if (!opt || !opt.dataset.filter) return;
-        sidebarHeat.querySelectorAll('.catalog-sidebar__option').forEach(o => {
-            o.classList.remove('active');
-            o.setAttribute('aria-checked', 'false');
-        });
-        opt.classList.add('active');
-        opt.setAttribute('aria-checked', 'true');
-        activeFilter = opt.dataset.filter;
-
-        // Sync mobile chips
-        filterChipsContainer.querySelectorAll('.toolbar__chip').forEach(c => {
-            const isMatch = c.dataset.filter === activeFilter;
-            c.classList.toggle('active', isMatch);
-            c.setAttribute('aria-checked', String(isMatch));
-        });
-
-        updateFilterBadge();
-        updateSidebarReset();
-        applyFilters();
-        haptic('impact', 'light');
-    });
-}
-
-// Desktop sidebar stock filter
-if (sidebarStock) {
-    sidebarStock.addEventListener('click', (e) => {
-        const opt = e.target.closest('.catalog-sidebar__option');
-        if (!opt || !opt.dataset.stock) return;
-        sidebarStock.querySelectorAll('.catalog-sidebar__option').forEach(o => {
-            o.classList.remove('active');
-            o.setAttribute('aria-checked', 'false');
-        });
-        opt.classList.add('active');
-        opt.setAttribute('aria-checked', 'true');
-        stockFilter = opt.dataset.stock;
-
-        // Sync mobile chips
-        stockToggle.querySelectorAll('.toolbar__chip[data-stock]').forEach(c => {
-            const isMatch = c.dataset.stock === stockFilter;
-            c.classList.toggle('active', isMatch);
-            c.setAttribute('aria-checked', String(isMatch));
-        });
-
-        updateFilterBadge();
-        updateSidebarReset();
-        applyFilters();
-        haptic('impact', 'light');
-    });
-}
-
-// Desktop sidebar category filter
+// Desktop sidebar filters — each syncs its state variable + mobile chips
 const sidebarCategory = document.getElementById('sidebar-category');
-if (sidebarCategory) {
-    sidebarCategory.addEventListener('click', (e) => {
+
+const sidebarFilters = [
+    { container: sidebarHeat, dataAttr: 'filter', mobileContainer: filterChipsContainer, mobileSelector: '.toolbar__chip',
+      getState: () => activeFilter, setState: (v) => { activeFilter = v; } },
+    { container: sidebarStock, dataAttr: 'stock', mobileContainer: stockToggle, mobileSelector: '.toolbar__chip[data-stock]',
+      getState: () => stockFilter, setState: (v) => { stockFilter = v; } },
+    { container: sidebarCategory, dataAttr: 'category', mobileContainer: categoryChipsContainer, mobileSelector: '.toolbar__chip',
+      getState: () => categoryFilter, setState: (v) => { categoryFilter = v; } },
+];
+
+sidebarFilters.forEach(({ container, dataAttr, mobileContainer, mobileSelector, setState }) => {
+    if (!container) return;
+    container.addEventListener('click', (e) => {
         const opt = e.target.closest('.catalog-sidebar__option');
-        if (!opt || !opt.dataset.category) return;
-        sidebarCategory.querySelectorAll('.catalog-sidebar__option').forEach(o => {
-            o.classList.remove('active');
-            o.setAttribute('aria-checked', 'false');
-        });
-        opt.classList.add('active');
-        opt.setAttribute('aria-checked', 'true');
-        categoryFilter = opt.dataset.category;
-
-        // Sync mobile category chips
-        categoryChipsContainer.querySelectorAll('.toolbar__chip').forEach(c => {
-            const isMatch = c.dataset.category === categoryFilter;
-            c.classList.toggle('active', isMatch);
-            c.setAttribute('aria-checked', String(isMatch));
-        });
-
+        if (!opt || !opt.dataset[dataAttr]) return;
+        syncRadioGroup(container, '.catalog-sidebar__option', dataAttr, opt.dataset[dataAttr]);
+        setState(opt.dataset[dataAttr]);
+        syncRadioGroup(mobileContainer, mobileSelector, dataAttr, opt.dataset[dataAttr]);
         updateFilterBadge();
         updateSidebarReset();
         applyFilters();
         haptic('impact', 'light');
     });
-}
+});
 
 // Sidebar reset button
 if (sidebarResetBtn) {
@@ -679,71 +641,38 @@ if (sidebarResetBtn) {
     });
 }
 
-// Sync sidebar UI from current filter state
 function syncSidebarFromState() {
-    if (sidebarCategory) {
-        sidebarCategory.querySelectorAll('.catalog-sidebar__option').forEach(o => {
-            const isMatch = o.dataset.category === categoryFilter;
-            o.classList.toggle('active', isMatch);
-            o.setAttribute('aria-checked', String(isMatch));
-        });
-    }
-    if (sidebarHeat) {
-        sidebarHeat.querySelectorAll('.catalog-sidebar__option').forEach(o => {
-            const isMatch = o.dataset.filter === activeFilter;
-            o.classList.toggle('active', isMatch);
-            o.setAttribute('aria-checked', String(isMatch));
-        });
-    }
-    if (sidebarStock) {
-        sidebarStock.querySelectorAll('.catalog-sidebar__option').forEach(o => {
-            const isMatch = o.dataset.stock === stockFilter;
-            o.classList.toggle('active', isMatch);
-            o.setAttribute('aria-checked', String(isMatch));
-        });
-    }
-    if (categoryChipsContainer) {
-        categoryChipsContainer.querySelectorAll('.toolbar__chip').forEach(c => {
-            const isMatch = c.dataset.category === categoryFilter;
-            c.classList.toggle('active', isMatch);
-            c.setAttribute('aria-checked', String(isMatch));
-        });
-    }
-    if (desktopSearchInput) {
-        desktopSearchInput.value = searchInput.value;
-    }
+    sidebarFilters.forEach(({ container, dataAttr, mobileContainer, mobileSelector, getState }) => {
+        syncRadioGroup(container, '.catalog-sidebar__option', dataAttr, getState());
+        syncRadioGroup(mobileContainer, mobileSelector, dataAttr, getState());
+    });
+    if (desktopSearchInput) desktopSearchInput.value = searchInput.value;
     updateSidebarReset();
 }
 
 // Show/hide sidebar reset button
 function updateSidebarReset() {
     if (!sidebarResetBtn) return;
-    const hasFilters = categoryFilter !== 'all' || activeFilter !== 'all' || stockFilter !== 'all';
-    sidebarResetBtn.classList.toggle('visible', hasFilters);
+    sidebarResetBtn.classList.toggle('visible', getActiveFilterCount() > 0);
 }
 
 // Update desktop results count
 function updateDesktopResults(count) {
     if (!desktopResultsCount) return;
     if (count === undefined) return;
-    const word = count === 0 ? 'товаров' : count === 1 ? 'товар' : count < 5 ? 'товара' : 'товаров';
-    desktopResultsCount.textContent = `${count} ${word}`;
+    desktopResultsCount.textContent = `${count} ${plural(count, 'товар', 'товара', 'товаров')}`;
 }
 
-// Patch applyFilters to update desktop results count + sync sidebar
-const _origApplyFilters = applyFilters;
-applyFilters = function() {
-    _origApplyFilters();
-    const filtered = getFilteredSauces();
-    updateDesktopResults(filtered.length);
-    syncSidebarFromState();
-};
 
-// Also sync when mobile filter chips are clicked (override callback)
-const _origResetFilters = resetFilters;
-resetFilters = function() {
-    _origResetFilters();
-    syncSidebarFromState();
-};
+// --- Toolbar sticky offset (below header) ---
+(function fixToolbarOffset() {
+    const header = document.querySelector('.header');
+    if (!header || !toolbar) return;
+    function update() {
+        toolbar.style.top = header.offsetHeight + 'px';
+    }
+    update();
+    window.addEventListener('resize', update);
+})();
 
 loadCatalog();
