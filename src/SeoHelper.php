@@ -18,8 +18,8 @@ class SeoHelper
      */
     public function catalogMeta(array $sauces = []): string
     {
-        $title = 'RAGEFILL — Каталог сверхострых соусов | Купить острый соус в Беларуси';
-        $desc = 'Каталог сверхострых соусов RAGEFILL. Carolina Reaper, Trinidad Scorpion и другие огненные соусы ручной работы. Доставка по Беларуси.';
+        $title = 'Каталог RAGEFILL — острые соусы, подарочные наборы, специи | Купить в Беларуси';
+        $desc = 'Каталог RAGEFILL: острые соусы, подарочные наборы, маринованные перцы, специи и арахис ручной работы. Carolina Reaper, Habanero и другие. Доставка по Беларуси.';
         $url = $this->baseUrl . '/catalog';
 
         // Use first product image as OG fallback
@@ -41,14 +41,37 @@ class SeoHelper
     {
         $name = $sauce['name'] ?? '';
         $subtitle = $sauce['subtitle'] ?? '';
+        $category = $sauce['category'] ?? 'sauce';
+        $heat = (int)($sauce['heat_level'] ?? 3);
         $descText = $this->stripHtml($sauce['description'] ?? '');
         $shortDesc = mb_substr($descText, 0, 155, 'UTF-8');
         if (mb_strlen($descText, 'UTF-8') > 155) {
             $shortDesc .= '…';
         }
 
-        $title = "{$name} — острый соус RAGEFILL";
+        // Category-aware title suffix
+        $titleSuffix = match ($category) {
+            'gift_set' => 'подарочный набор RAGEFILL',
+            'pickled_pepper' => 'маринованные перцы RAGEFILL',
+            'spicy_peanut' => 'острый арахис RAGEFILL',
+            'spice' => 'специи RAGEFILL',
+            default => 'острый соус RAGEFILL',
+        };
+        $title = "{$name} — {$titleSuffix}";
+
+        // Fallback description: subtitle → description excerpt → generated
         $desc = $subtitle ?: $shortDesc;
+        if ($desc === '') {
+            $categoryLabel = match ($category) {
+                'gift_set' => 'Подарочный набор',
+                'pickled_pepper' => 'Маринованные перцы',
+                'spicy_peanut' => 'Острый арахис',
+                'spice' => 'Специи',
+                default => 'Острый соус',
+            };
+            $desc = "{$categoryLabel} {$name} от RAGEFILL. Острота {$heat}/5. Купить в Беларуси с доставкой.";
+        }
+
         $url = $this->baseUrl . '/sauce/' . ($sauce['slug'] ?? $sauce['id']);
         $image = !empty($sauce['image'])
             ? $this->baseUrl . '/uploads/' . $sauce['image']

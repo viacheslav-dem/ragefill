@@ -384,7 +384,7 @@ return [
 | Метод | Назначение |
 |---|---|
 | `catalogMeta()` | Мета-теги для каталога |
-| `productMeta()` | Мета-теги для продукта (`og:type=product`) |
+| `productMeta()` | Мета-теги для продукта (`og:type=product`), category-aware title suffix, fallback description |
 | `productJsonLd()` | Product + Offer schema |
 | `breadcrumbJsonLd()` | BreadcrumbList для продуктовых страниц |
 | `organizationJsonLd()` | LocalBusiness schema (адрес, контакт, регион) |
@@ -398,9 +398,10 @@ return [
 ### Страницы
 | URL | Рендеринг | Описание |
 |---|---|---|
-| `/` | SSR (PHP) | Гл��вная с hero, featured, benefits, отзывы, FAQ |
-| `/catalog` | SSR + JS hydration | Каталог с фильтрами, SSR-карточки |
-| `/sauce/{slug}` | SSR (PHP) | Индивидуальная страница продукта |
+| `/` | SSR (PHP) | Главная с hero, featured, benefits, about-текст, testimonials, отзывы, FAQ |
+| `/catalog` | SSR + JS hydration | Каталог с intro-текстом, фильтрами, SSR-карточки |
+| `/sauce/{slug}` | SSR (PHP) | Страница продукта + блок «Вам может понравиться» |
+| `/about` | 301 → `/` | Редирект на главную (about-контент встроен в homepage) |
 | `/privacy` | SSR (PHP) | Политика конфиденциальности |
 | `/admin` | Static HTML | Админ-панель |
 | `/sitemap.xml` | Dynamic | XML-карта сайта |

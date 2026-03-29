@@ -18,39 +18,30 @@ $db = new Database($config['db_path']);
 $auth = new AuthMiddleware($config['admin_password']);
 $seo = new SeoHelper($config['base_url']);
 
-const ABOUT_BENEFITS = [
-    ['icon' => '🌶️', 'title' => 'Ручная работа', 'text' => 'Каждая партия готовится вручную из свежих перцев небольшими порциями.'],
-    ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Без консервантов, красителей и усилителей вкуса — только настоящие ингредиенты.'],
-    ['icon' => '🔥', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
-    ['icon' => '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10.5" width="18" height="10" rx="1.2" fill="#E8590C" stroke="#C7470A" stroke-width="0.8"/><rect x="2.5" y="7.5" width="19" height="3.5" rx="1" fill="#DC2626" stroke="#B91C1C" stroke-width="0.8"/><rect x="10.75" y="7.5" width="2.5" height="13" fill="#F59E0B"/><rect x="2.5" y="8.75" width="19" height="1.5" fill="#F59E0B"/><path d="M12 7.5C12 7.5 10 4 8.5 4C7 4 6 5 6.5 6.25C7 7.5 9 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/><path d="M12 7.5C12 7.5 14 4 15.5 4C17 4 18 5 17.5 6.25C17 7.5 15 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/></svg>', 'title' => 'Идеальный подарок', 'text' => 'Подарочные наборы и индивидуальная подборка соусов для любого повода.'],
-    ['icon' => '🚚', 'title' => 'Доставка по Беларуси', 'text' => 'Отправляем почтой и курьером по всей стране. Самовывоз в Минске.'],
-    ['icon' => '💬', 'title' => 'Личный подход', 'text' => 'Поможем подобрать соус под ваш вкус — просто напишите в Telegram.'],
-];
-
 const ABOUT_FAQ = [
     [
         'question' => 'Как сделать заказ?',
-        'answer' => 'Напишите нам в Telegram <a href="https://t.me/rage_fill">@rage_fill</a> — поможем выбрать соус и оформим заказ. Также можно открыть каталог прямо в Telegram-боте.',
+        'answer' => 'Напишите нам в Telegram <a href="https://t.me/rage_fill">@rage_fill</a> — поможем выбрать соус и оформим заказ. Также можно открыть каталог прямо в Telegram-боте и выбрать товар там. Оплата — наличными при самовывозе, переводом на карту или наложенным платежом при доставке. Обычно отправляем заказ в течение 1–2 дней.',
     ],
     [
         'question' => 'Какие способы доставки доступны?',
-        'answer' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту. Возможен самовывоз в Минске — уточняйте детали в Telegram.',
+        'answer' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту. Срок доставки — 2–5 дней в зависимости от региона. Возможен самовывоз в Минске — уточняйте адрес и время в Telegram. Каждый заказ упаковываем надёжно, чтобы бутылки доехали в целости.',
     ],
     [
         'question' => 'Какой срок годности у соусов?',
-        'answer' => 'Срок годности наших соусов — 12 месяцев с даты изготовления. Храните в прохладном месте, после вскрытия — в холодильнике.',
+        'answer' => 'Срок годности наших соусов — 12 месяцев с даты изготовления. В закрытом виде храните в прохладном тёмном месте при температуре до +25°C. После вскрытия — обязательно в холодильнике, и соус сохранит вкус ещё 3–4 месяца. Дата изготовления указана на этикетке.',
     ],
     [
-        'question' => 'Из чего делают соусы RAGE FILL?',
-        'answer' => 'Только натуральные ингредиенты: свежие острые перцы (выращиваем сами), овощи, специи, уксус. Без консервантов, красителей и усилителей вкуса.',
+        'question' => 'Из чего делают соусы RAGEFILL?',
+        'answer' => 'Только натуральные ингредиенты: свежие острые перцы, которые мы выращиваем сами (Carolina Reaper, Habanero, Bhut Jolokia, Apocalypse Scorpion и другие), овощи, специи и уксус. В составе нет консервантов, красителей и усилителей вкуса. Каждая партия готовится вручную небольшими порциями — так мы контролируем качество и вкус.',
     ],
     [
         'question' => 'Какой соус выбрать, если я не пробовал острое?',
-        'answer' => 'Начните с соусов с уровнем остроты 1–2 (умеренная). Они дают приятное тепло без экстремального жжения. Мы поможем подобрать — напишите нам!',
+        'answer' => 'Начните с соусов с уровнем остроты 1–2 из 5. Они дают приятное тепло и раскрывают вкус блюда без экстремального жжения. Подойдут к мясу, пицце, бургерам и закускам. Если хотите попробовать разное — посмотрите наши подарочные наборы с соусами разной остроты. Не уверены в выборе? Напишите нам в Telegram — подберём под ваш вкус!',
     ],
     [
         'question' => 'Можно ли заказать соус в подарок?',
-        'answer' => 'Да! У нас есть готовые подарочные наборы, а также можем собрать индивидуальный комплект. Отличный подарок на День рождения, 23 февраля, 8 марта и любой праздник.',
+        'answer' => 'Да! У нас есть готовые подарочные наборы с соусами разной остроты — от лёгкой до экстремальной. Также можем собрать индивидуальный комплект по вашему пожеланию. Отличный подарок на День рождения, 23 февраля, 8 марта, Новый год или любой другой праздник. Каждый набор красиво упакован и готов к вручению.',
     ],
 ];
 
@@ -317,7 +308,7 @@ $app->get('/sauce/{slug:[a-z0-9][a-z0-9\-]*}', function (Request $request, Respo
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8')->withStatus(404);
     }
 
-    $html = renderProductPage($sauce, $seo, $config);
+    $html = renderProductPage($sauce, $seo, $config, $db);
     $response->getBody()->write($html);
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
@@ -522,7 +513,7 @@ function renderFooter(array $config): string
     HTML;
 }
 
-function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
+function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database $db): string
 {
     $name = htmlspecialchars($sauce['name'], ENT_QUOTES, 'UTF-8');
     $subtitle = htmlspecialchars($sauce['subtitle'] ?? '', ENT_QUOTES, 'UTF-8');
@@ -582,7 +573,15 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
     $metaTags = $seo->productMeta($sauce);
     $jsonLd = $seo->productJsonLd($sauce);
     $breadcrumbLd = $seo->breadcrumbJsonLd($sauce['name'], $sauceSlug);
-    $title = htmlspecialchars($sauce['name'] . ' — острый соус RAGEFILL', ENT_QUOTES, 'UTF-8');
+    $category = $sauce['category'] ?? 'sauce';
+    $titleSuffix = match ($category) {
+        'gift_set' => 'подарочный набор RAGEFILL',
+        'pickled_pepper' => 'маринованные перцы RAGEFILL',
+        'spicy_peanut' => 'острый арахис RAGEFILL',
+        'spice' => 'специи RAGEFILL',
+        default => 'острый соус RAGEFILL',
+    };
+    $title = htmlspecialchars($sauce['name'] . ' — ' . $titleSuffix, ENT_QUOTES, 'UTF-8');
 
     // Clean description HTML for display (strip all attributes to prevent XSS)
     $descHtml = sanitizeHtml($desc);
@@ -626,6 +625,30 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
     $categoryLabel = $categoryMap[$category] ?? 'Соус';
 
     $footer = renderFooter($config);
+
+    // Related products: sorted by closest heat level, excluding current, limit 4
+    $allActive = $db->getAllSauces(true);
+    $others = array_filter($allActive, fn($s) => $s['id'] != $id);
+    usort($others, fn($a, $b) =>
+        abs(($a['heat_level'] ?? 3) - $heat) <=> abs(($b['heat_level'] ?? 3) - $heat)
+    );
+    $related = array_slice($others, 0, 4);
+
+    $relatedHtml = '';
+    if (!empty($related)) {
+        $relatedCards = '';
+        foreach ($related as $rel) {
+            $relatedCards .= $seo->renderProductCard($rel);
+        }
+        $relatedHtml = <<<HTML
+        <section class="product-page__related">
+            <h2 class="product-page__related-title">Вам может понравиться</h2>
+            <div class="product-page__related-grid" role="list">
+                {$relatedCards}
+            </div>
+        </section>
+        HTML;
+    }
 
     $ctaText = $inStock ? 'Написать продавцу' : 'Узнать о наличии';
     $ctaIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>';
@@ -735,6 +758,8 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
                 </div>
             </div>
         </article>
+
+        {$relatedHtml}
 
         </main>
 
@@ -1051,8 +1076,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $year = date('Y');
 
     // SEO
-    $title = 'RAGE FILL — Острые соусы ручной работы | Минск, Беларусь';
-    $desc = 'Острые соусы ручной работы RAGE FILL. Собственные перцы, от лёгкой до экстремальной остроты, натуральные ингредиенты. Каталог, доставка по Беларуси.';
+    $title = 'RAGEFILL — Острые соусы ручной работы | Минск, Беларусь';
+    $desc = 'Острые соусы ручной работы RAGEFILL. Собственные перцы, от лёгкой до экстремальной остроты, натуральные ингредиенты. Каталог, доставка по Беларуси.';
     $url = $baseUrl . '/';
 
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
@@ -1165,9 +1190,10 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             $src = '/uploads/reviews/' . htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
             $reviewSrcs[] = $src;
             $delay = $idx * 80;
+            $reviewNum = $idx + 1;
             $reviewsHtml .= <<<HTML
                 <button type="button" class="home-review" data-review-index="{$idx}" data-aos="fade-up" data-aos-delay="{$delay}">
-                    <img class="home-review__img" src="{$src}" alt="Отзыв клиента RAGE FILL" loading="lazy">
+                    <img class="home-review__img" src="{$src}" alt="Отзыв #{$reviewNum} клиента RAGEFILL об острых соусах" loading="lazy">
                 </button>
             HTML;
         }
@@ -1227,12 +1253,15 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
         <!-- Hero -->
         <section class="home-hero">
+            <div class="hero-liquid hero-liquid--left" aria-hidden="true"></div>
+            <div class="hero-liquid hero-liquid--right" aria-hidden="true"></div>
             <div class="home-hero__inner">
                 <h1 class="home-hero__title" data-aos="fade-up">
-                    <span class="home-hero__title-rage">RAGE</span> <span class="home-hero__title-fill">FILL</span>
+                    <span class="home-hero__title-rage">RAGE</span><span class="home-hero__title-fill">FILL</span>
+                   <!-- <span class="home-hero__title-sub">Острые соусы ручной работы</span> -->
                 </h1>
-                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Острые соусы, подарочные наборы, специи и маринованные перцы ручной работы</p>
-                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Яркий вкус, натуральные ингредиенты и острота под любой вкус — от лёгкой до экстремальной. Идеальный выбор для мяса, пиццы, бургеров и закусок. Доставка по Минску и Беларуси.</p>
+                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Соусы, подарочные наборы, специи и маринованные перцы из собственных перцев</p>
+                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Готовим вручную из перцев, которые выращиваем сами — Carolina Reaper, Habanero, Bhut Jolokia. Пять уровней остроты, натуральный состав без консервантов. Доставка по Минску и всей Беларуси.</p>
                 <div class="home-hero__buttons" data-aos="fade-up" data-aos-delay="300">
                     <a href="/catalog" class="home-hero__btn home-hero__btn--primary">Смотреть каталог</a>
                     <a href="https://t.me/{$contactTg}" class="home-hero__btn home-hero__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
@@ -1263,6 +1292,16 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             </div>
         </section>
 
+        <!-- About -->
+        <section class="home-section home-about-section">
+            <div class="home-container">
+                <div class="home-about" data-aos="fade-up">
+                    <p>RAGEFILL — это острые соусы ручной работы из Минска. Мы выращиваем перцы сами: Carolina Reaper, Apocalypse Scorpion, Bhut Jolokia, Habanero, 7 POT и другие сорта. Все соусы готовим небольшими партиями по авторским рецептам — без консервантов, красителей и усилителей вкуса.</p>
+                    <p>Помимо соусов в каталоге — подарочные наборы, маринованные перцы, острый арахис и специи. Доставляем по Минску и всей Беларуси.</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Reviews -->
         <section class="home-section home-reviews-section">
             <div class="home-container">
@@ -1278,6 +1317,20 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                     <button class="home-reviews-slider__nav home-reviews-slider__nav--next" id="reviews-next" aria-label="Вперёд">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
+                </div>
+                <div class="home-testimonials" data-aos="fade-up">
+                    <div class="home-testimonial">
+                        <blockquote class="home-testimonial__text">&laquo;Заказывал набор на подарок другу — он был в восторге! Особенно понравился соус с Carolina Reaper, острота реально мощная.&raquo;</blockquote>
+                        <cite class="home-testimonial__author">— Клиент из Минска</cite>
+                    </div>
+                    <div class="home-testimonial">
+                        <blockquote class="home-testimonial__text">&laquo;Натуральный состав чувствуется сразу. Это не просто острота — у каждого соуса свой вкус. Доставили быстро и аккуратно.&raquo;</blockquote>
+                        <cite class="home-testimonial__author">— Клиент из Гомеля</cite>
+                    </div>
+                    <div class="home-testimonial">
+                        <blockquote class="home-testimonial__text">&laquo;Начал с лёгкого уровня, теперь дорос до 4-ки. Отличные соусы для мяса на гриле, всем рекомендую!&raquo;</blockquote>
+                        <cite class="home-testimonial__author">— Клиент из Бреста</cite>
+                    </div>
                 </div>
                 <div class="home-reviews__cta" data-aos="fade-up">
                     <a href="https://instagram.com/ragefill.by" class="home-reviews__instagram" target="_blank" rel="noopener noreferrer">
@@ -1409,8 +1462,8 @@ function renderAboutPage(array $config, SeoHelper $seo): string
     $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
 
     // SEO meta
-    $title = 'О нас — RAGE FILL | Острые соусы ручной работы (Минск, Беларусь)';
-    $desc = 'Авторские острые соусы ручной работы RAGE FILL. От лёгкой до экстремальной остроты, из собственных перцев и натуральных ингредиентов. Доставка по Минску и Беларуси. Каталог, отзывы, преимущества.';
+    $title = 'О нас — RAGEFILL | Острые соусы ручной работы (Минск, Беларусь)';
+    $desc = 'Авторские острые соусы ручной работы RAGEFILL. От лёгкой до экстремальной остроты, из собственных перцев и натуральных ингредиентов. Доставка по Минску и Беларуси. Каталог, отзывы, преимущества.';
     $url = rtrim($config['base_url'], '/') . '/about';
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
 
@@ -1487,9 +1540,10 @@ function renderAboutPage(array $config, SeoHelper $seo): string
         foreach ($reviewImages as $idx => $img) {
             $src = '/uploads/reviews/' . htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
             $aboutReviewSrcs[] = $src;
+            $aboutReviewNum = $idx + 1;
             $aboutReviewsHtml .= <<<HTML
                 <button type="button" class="about-review" data-review-index="{$idx}">
-                    <img class="about-review__img" src="{$src}" alt="Отзыв клиента RAGE FILL" loading="lazy">
+                    <img class="about-review__img" src="{$src}" alt="Отзыв #{$aboutReviewNum} клиента RAGEFILL об острых соусах" loading="lazy">
                 </button>
             HTML;
         }
@@ -1536,9 +1590,19 @@ function renderAboutPage(array $config, SeoHelper $seo): string
 
         <main class="about-main">
 
+            <!-- Story -->
+            <section class="about-section about-story" aria-label="О нас">
+                <h1 class="about-section__title">О RAGEFILL</h1>
+                <div class="about-story__content">
+                    <p>RAGEFILL — это острые соусы ручной работы из Минска. Мы выращиваем перцы сами: Carolina Reaper, Apocalypse Scorpion, Bhut Jolokia, Habanero, 7 POT и другие сорта с разных континентов. Каждый сорт — свой характер остроты и вкуса.</p>
+                    <p>Все соусы готовим небольшими партиями по авторским рецептам. Без консервантов, красителей и усилителей вкуса — только перцы, овощи, специи и уксус. Пять уровней остроты: от мягкого тепла для новичков до экстремального жжения для тех, кто ищет настоящий вызов.</p>
+                    <p>Помимо соусов в нашем каталоге — подарочные наборы, маринованные перцы, острый арахис и специи. Доставляем по Минску и всей Беларуси.</p>
+                </div>
+            </section>
+
             <!-- Benefits -->
             <section class="about-section about-benefits" aria-label="Преимущества">
-                <h1 class="about-section__title">Почему выбирают RAGE FILL</h1>
+                <h2 class="about-section__title">Почему выбирают RAGEFILL</h2>
                 <div class="about-benefits__grid">
                     {$benefitsHtml}
                 </div>
