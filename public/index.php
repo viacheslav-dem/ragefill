@@ -22,7 +22,7 @@ const ABOUT_BENEFITS = [
     ['icon' => '🌶️', 'title' => 'Ручная работа', 'text' => 'Каждая партия готовится вручную из свежих перцев небольшими порциями.'],
     ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Без консервантов, красителей и усилителей вкуса — только настоящие ингредиенты.'],
     ['icon' => '🔥', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
-    ['icon' => '🎁', 'title' => 'Идеальный подарок', 'text' => 'Подарочные наборы и индивидуальная подборка соусов для любого повода.'],
+    ['icon' => '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10.5" width="18" height="10" rx="1.2" fill="#E8590C" stroke="#C7470A" stroke-width="0.8"/><rect x="2.5" y="7.5" width="19" height="3.5" rx="1" fill="#DC2626" stroke="#B91C1C" stroke-width="0.8"/><rect x="10.75" y="7.5" width="2.5" height="13" fill="#F59E0B"/><rect x="2.5" y="8.75" width="19" height="1.5" fill="#F59E0B"/><path d="M12 7.5C12 7.5 10 4 8.5 4C7 4 6 5 6.5 6.25C7 7.5 9 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/><path d="M12 7.5C12 7.5 14 4 15.5 4C17 4 18 5 17.5 6.25C17 7.5 15 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/></svg>', 'title' => 'Идеальный подарок', 'text' => 'Подарочные наборы и индивидуальная подборка соусов для любого повода.'],
     ['icon' => '🚚', 'title' => 'Доставка по Беларуси', 'text' => 'Отправляем почтой и курьером по всей стране. Самовывоз в Минске.'],
     ['icon' => '💬', 'title' => 'Личный подход', 'text' => 'Поможем подобрать соус под ваш вкус — просто напишите в Telegram.'],
 ];
@@ -716,7 +716,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
         {$footer}
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
+        <script src="/js/lightbox.js?v=2.0.0" data-cfasync="false"></script>
         <script data-cfasync="false">
             const _tgRaw = window.Telegram?.WebApp;
             const tg = (_tgRaw && _tgRaw.initData) ? _tgRaw : null;
@@ -988,7 +988,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $benefits = [
         ['icon' => '🌶', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
         ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
-        ['icon' => '🎁', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
+        ['icon' => '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10.5" width="18" height="10" rx="1.2" fill="#E8590C" stroke="#C7470A" stroke-width="0.8"/><rect x="2.5" y="7.5" width="19" height="3.5" rx="1" fill="#DC2626" stroke="#B91C1C" stroke-width="0.8"/><rect x="10.75" y="7.5" width="2.5" height="13" fill="#F59E0B"/><rect x="2.5" y="8.75" width="19" height="1.5" fill="#F59E0B"/><path d="M12 7.5C12 7.5 10 4 8.5 4C7 4 6 5 6.5 6.25C7 7.5 9 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/><path d="M12 7.5C12 7.5 14 4 15.5 4C17 4 18 5 17.5 6.25C17 7.5 15 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/></svg>', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
         ['icon' => '🔥', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
         ['icon' => '🚚', 'title' => 'Доставка по Беларуси', 'text' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту.'],
         ['icon' => '⭐', 'title' => 'Запоминающийся вкус', 'text' => 'Соусы, которые действительно жгут и запоминаются. Яркий вкус для мяса, пиццы, бургеров.'],
@@ -1169,20 +1169,6 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             </div>
         </section>
 
-        <!-- CTA -->
-        <section class="home-cta" data-aos="fade-up">
-            <div class="home-container">
-                <div class="home-cta__inner">
-                    <h2 class="home-cta__title">Готовы попробовать?</h2>
-                    <p class="home-cta__text">Откройте каталог и выберите свой уровень огня</p>
-                    <div class="home-cta__buttons">
-                        <a href="/catalog" class="home-hero__btn home-hero__btn--primary">Перейти в каталог</a>
-                        <a href="https://t.me/{$contactTg}" class="home-hero__btn home-hero__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         </main>
 
         <footer class="home-footer">
@@ -1190,13 +1176,13 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                 <div class="home-footer__inner">
                     <div class="home-footer__brand">
                         <div class="home-footer__logo"><span class="home-footer__logo-rage">RAGE</span> <span class="home-footer__logo-fill">FILL</span></div>
-                        <p class="home-footer__tagline">Острые соусы ручной работы, Беларусь</p>
                     </div>
                     <div class="home-footer__links">
                         <a href="/catalog">Каталог</a>
                         <a href="#benefits">О нас</a>
                         <a href="#faq">FAQ</a>
                     </div>
+                    <a href="/catalog" class="home-footer__cta">Перейти в каталог</a>
                     <div class="home-footer__social">
                         <a href="https://t.me/{$contactTg}" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>
@@ -1213,7 +1199,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         </footer>
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
+        <script src="/js/lightbox.js?v=2.0.0" data-cfasync="false"></script>
         <script src="/js/slider.js?v=1.0.0" data-cfasync="false"></script>
         <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
         <script>
@@ -1322,7 +1308,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
     $benefits = [
         ['icon' => '🌶', 'title' => 'Собственные перцы', 'text' => 'Мы сами выращиваем острые перцы: Carolina Reaper, Apocalypse Scorpion, Big Red Mama, 7 POT, Bhut Jolokia, Habanero, The Pain, Jalapeño и другие.'],
         ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Готовим соусы из натуральных ингредиентов по собственным авторским рецептам. Без консервантов и красителей.'],
-        ['icon' => '🎁', 'title' => 'Идея для подарка', 'text' => 'Отличный вариант для любого праздника — будь то День рождения, 23 февраля, 8 марта, юбилей или просто особый повод.'],
+        ['icon' => '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10.5" width="18" height="10" rx="1.2" fill="#E8590C" stroke="#C7470A" stroke-width="0.8"/><rect x="2.5" y="7.5" width="19" height="3.5" rx="1" fill="#DC2626" stroke="#B91C1C" stroke-width="0.8"/><rect x="10.75" y="7.5" width="2.5" height="13" fill="#F59E0B"/><rect x="2.5" y="8.75" width="19" height="1.5" fill="#F59E0B"/><path d="M12 7.5C12 7.5 10 4 8.5 4C7 4 6 5 6.5 6.25C7 7.5 9 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/><path d="M12 7.5C12 7.5 14 4 15.5 4C17 4 18 5 17.5 6.25C17 7.5 15 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/></svg>', 'title' => 'Идея для подарка', 'text' => 'Отличный вариант для любого праздника — будь то День рождения, 23 февраля, 8 марта, юбилей или просто особый повод.'],
         ['icon' => '🔥', 'title' => 'Широкий выбор', 'text' => 'От лёгкой остроты до экстремальной. Яркий вкус для мяса, пиццы, бургеров и закусок.'],
         ['icon' => '🚚', 'title' => 'Доставка по Беларуси', 'text' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту.'],
         ['icon' => '⭐', 'title' => 'Запоминающийся вкус', 'text' => 'Мы делаем соусы, которые действительно жгут и запоминаются.'],
@@ -1464,7 +1450,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
         {$footer}
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
+        <script src="/js/lightbox.js?v=2.0.0" data-cfasync="false"></script>
         <script>
             (function() {
                 const saved = localStorage.getItem('ragefill-theme');
