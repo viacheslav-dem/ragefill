@@ -394,8 +394,9 @@ function openForm(sauce = null) {
 
     formOverlay.classList.add('active');
 
-    // Track dirty state
+    // Reset dirty state AFTER Quill content is set (Quill fires text-change on programmatic updates)
     setTimeout(() => {
+        formDirty = false;
         sauceForm.querySelectorAll('input:not([type="hidden"]), textarea, select').forEach(el => {
             el.addEventListener('input', () => { formDirty = true; }, { once: true });
             el.addEventListener('change', () => { formDirty = true; }, { once: true });

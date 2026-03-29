@@ -684,11 +684,6 @@ search.toolbar {
     padding-top: 6px;
 }
 
-.sauce-card__volume {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-weight: 500;
-}
 
 /* Pepper heat display */
 .pepper { display: inline-block; }
@@ -1815,12 +1810,13 @@ body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
 
 /* Footer new wrappers — transparent on mobile */
 .site-footer__inner { display: block; text-align: center; }
-.site-footer__brand { margin-bottom: 8px; }
-.site-footer__contact { margin-bottom: 12px; }
+.site-footer__brand { margin-bottom: 4px; }
+.site-footer__contact { margin-bottom: 8px; }
 .site-footer__about { display: none; }
+.site-footer__nav { display: none; }
 .site-footer__heading { display: none; }
 .site-footer__about-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-.site-footer__bottom { border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 16px; }
+.site-footer__bottom { border-top: 1px solid var(--border-subtle); padding-top: 8px; margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; }
 .site-footer__privacy-link { font-size: 12px; color: var(--text-muted); text-decoration: none; }
 .site-footer__privacy-link:hover { color: var(--text-secondary); text-decoration: underline; }
 
@@ -2019,7 +2015,7 @@ body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
 
     .empty-state__text { font-size: 17px; }
     .empty-state__hint { font-size: 14px; }
-    .site-footer { padding: 32px 32px 24px; }
+    .site-footer { padding: 20px 32px 14px; }
 
     .admin-content { padding: 24px; }
     .admin-header__link { font-size: 13px; }
@@ -2970,7 +2966,7 @@ a.sauce-card {
 
 .site-footer {
     text-align: center;
-    padding: 24px 16px calc(var(--safe-bottom) + 8px);
+    padding: 16px 16px calc(var(--safe-bottom) + 6px);
     margin-top: 0;
     background: var(--bg-elevated);
     border-top: 1px solid var(--border-subtle);
@@ -2986,7 +2982,7 @@ a.sauce-card {
     font-size: 28px;
     letter-spacing: 4px;
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .site-footer__logo::before,
@@ -3008,7 +3004,7 @@ a.sauce-card {
 }
 
 .site-footer__text {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     font-size: 12px;
     color: var(--text-muted);
 }
@@ -3016,16 +3012,16 @@ a.sauce-card {
 .site-footer__links {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 8px;
 }
 
 .site-footer__links a {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 16px;
-    border: 1.5px solid var(--border-card);
+    padding: 5px 12px;
+    border: 1px solid var(--border-card);
     border-radius: var(--radius-pill);
     color: var(--text-secondary);
     text-decoration: none;
@@ -3054,13 +3050,13 @@ a.sauce-card {
 /* === FOOTER DESKTOP OVERRIDES (must come after base footer styles) === */
 @media (min-width: 1024px) {
     .site-footer {
-        padding: 48px 40px 24px;
+        padding: 28px 40px 16px;
         text-align: left;
     }
     .site-footer__inner {
         display: grid;
-        grid-template-columns: 1.5fr 1fr 1.5fr;
-        gap: 48px;
+        grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+        gap: 32px;
         max-width: var(--max-width-site);
         margin: 0 auto;
         text-align: left;
@@ -3076,7 +3072,7 @@ a.sauce-card {
         text-transform: uppercase;
         letter-spacing: 1.5px;
         color: var(--text-muted);
-        margin: 0 0 12px;
+        margin: 0 0 8px;
     }
     .site-footer__contact { margin-bottom: 0; }
     .site-footer__links {
@@ -3089,7 +3085,7 @@ a.sauce-card {
         justify-content: flex-start;
         border: none;
         border-radius: 0;
-        padding: 4px 0;
+        padding: 2px 0;
         background: none;
         font-size: 14px;
     }
@@ -3097,15 +3093,16 @@ a.sauce-card {
         border: none;
         background: none;
     }
+    .site-footer__nav { display: block; }
     .site-footer__about { display: block; }
     .site-footer__bottom {
         max-width: var(--max-width-site);
-        margin: 24px auto 0;
+        margin: 16px auto 0;
     }
     .site-footer__copy { text-align: left; }
 }
 @media (min-width: 1440px) {
-    .site-footer { padding: 56px 48px 28px; }
+    .site-footer { padding: 32px 48px 18px; }
 }
 
 /* ============================================
@@ -4303,119 +4300,6 @@ body.tg-dark .hero-liquid::after { opacity: 0.85; }
 
 /* FAQ uses shared .faq__* component (see "FAQ accordion" section above) */
 
-/* --- Homepage Footer --- */
-.home-footer {
-    background: #1C1410;
-    color: rgba(250,247,244,0.45);
-    padding: 20px 0;
-    font-size: 12px;
-    border-top: 2px solid var(--fire-orange);
-}
-.home-footer__inner {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 12px 24px;
-    text-align: center;
-}
-.home-footer__logo {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-family: var(--font-display);
-    font-size: 20px;
-    letter-spacing: 3px;
-    line-height: 1;
-}
-.home-footer__logo::before,
-.home-footer__logo::after { display: none; }
-.home-footer__logo-rage {
-    background: linear-gradient(135deg, var(--fire-orange), var(--fire-red));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.home-footer__logo-fill { color: #fff; -webkit-text-fill-color: #fff; }
-.home-footer__links {
-    display: flex;
-    gap: 16px;
-}
-.home-footer__links a {
-    color: rgba(250,247,244,0.5);
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 12px;
-    transition: color 0.2s;
-}
-.home-footer__links a:hover { color: var(--fire-orange); }
-.home-footer__cta {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 20px;
-    background: var(--fire-orange);
-    color: #fff;
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    border-radius: var(--radius-pill);
-    transition: background 0.2s, box-shadow 0.2s;
-    white-space: nowrap;
-}
-.home-footer__cta:hover {
-    background: var(--ember-dark);
-    box-shadow: 0 2px 12px rgba(232, 89, 12, 0.3);
-}
-
-.home-footer__social {
-    display: flex;
-    gap: 8px;
-}
-.home-footer__social a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.07);
-    color: rgba(250,247,244,0.5);
-    transition: background 0.2s, color 0.2s;
-}
-.home-footer__social a svg { width: 16px; height: 16px; }
-.home-footer__social a:hover {
-    background: var(--fire-orange);
-    color: #fff;
-}
-.home-footer__bottom {
-    text-align: center;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    font-size: 11px;
-}
-
-@media (min-width: 768px) {
-    .home-footer__inner { justify-content: space-between; }
-    .home-footer__bottom { margin-top: 12px; padding-top: 12px; }
-}
-@media (min-width: 1024px) {
-    .home-footer { padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); }
-    .home-footer .home-container {
-        display: flex;
-        align-items: center;
-        gap: 32px;
-    }
-    .home-footer__inner { flex: 1; gap: 8px 28px; }
-    .home-footer__bottom {
-        margin: 0; padding: 0; border: none;
-        flex-shrink: 0;
-        font-size: 11px;
-        white-space: nowrap;
-    }
-}
-
 /* --- Homepage dark theme --- */
 body.tg-dark .home-hero {
     background: linear-gradient(160deg, #161210 0%, #1E1612 30%, #251C16 60%, #161210 100%);
@@ -4425,5 +4309,3 @@ body.tg-dark .home-hero::before {
 }
 body.tg-dark .home-hero__title-fill { color: var(--text-primary); -webkit-text-fill-color: var(--text-primary); }
 body.tg-dark .home-benefits-section { background: var(--bg-card); }
-body.tg-dark .home-footer { background: #0E0C0A; }
-body.tg-dark .home-footer__bottom { border-top-color: rgba(255,255,255,0.06); }

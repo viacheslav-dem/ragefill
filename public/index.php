@@ -494,9 +494,22 @@ function renderFooter(array $config): string
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>
                         Telegram
                     </a>
-                    <a href="https://instagram.com/ragefill.by" target="_blank" rel="noopener noreferrer">
+                    <a href="https://instagram.com/rage_fill" target="_blank" rel="noopener noreferrer">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                         Instagram
+                    </a>
+                </nav>
+            </div>
+            <div class="site-footer__nav">
+                <h4 class="site-footer__heading">Навигация</h4>
+                <nav class="site-footer__links" aria-label="Навигация">
+                    <a href="/">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        Главная
+                    </a>
+                    <a href="/catalog">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+                        Каталог
                     </a>
                 </nav>
             </div>
@@ -989,8 +1002,16 @@ function renderPrivacyPage(array $config, SeoHelper $seo): string
             </div>
         </header>
 
+        <nav class="catalog-breadcrumb" aria-label="Навигация">
+            <a href="/">Главная</a>
+            <span class="catalog-breadcrumb__sep" aria-hidden="true">
+                <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>Политика конфиденциальности</span>
+        </nav>
+
         <main>
-            <article class="privacy-page" style="max-width: 720px; margin: 0 auto; padding: 100px 20px 60px;">
+            <article class="privacy-page" style="max-width: 720px; margin: 0 auto; padding: 32px 20px 40px;">
                 <h1 style="font-family: var(--font-display); font-size: 2rem; margin-bottom: 24px;">Политика конфиденциальности</h1>
 
                 <p>Настоящая политика конфиденциальности описывает, как RAGEFILL обрабатывает информацию при использовании нашего сайта и Telegram-бота.</p>
@@ -1074,6 +1095,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
     $baseUrl = rtrim($config['base_url'], '/');
     $year = date('Y');
+    $footer = renderFooter($config);
 
     // SEO
     $title = 'RAGEFILL — Острые соусы ручной работы | Минск, Беларусь';
@@ -1233,7 +1255,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                     <a href="/catalog" class="header__nav-link">Каталог</a>
                     <a href="#benefits" class="header__nav-link">О нас</a>
                     <a href="#faq" class="header__nav-link">FAQ</a>
-                    <a href="https://t.me/{$contactTg}" class="header__nav-link" target="_blank" rel="noopener">Контакты</a>
+                    <a href="https://t.me/{$contactTg}" class="header__nav-link" target="_blank" rel="noopener">Написать нам</a>
                 </nav>
                 <div class="header__actions">
                     <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
@@ -1306,7 +1328,6 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         <section class="home-section home-reviews-section">
             <div class="home-container">
                 <h2 class="home-section__title" data-aos="fade-up">Отзывы</h2>
-                <p class="home-section__subtitle" data-aos="fade-up">Реальные отзывы наших клиентов из Instagram</p>
                 <div class="home-reviews-slider" data-aos="fade-up">
                     <button class="home-reviews-slider__nav home-reviews-slider__nav--prev" id="reviews-prev" aria-label="Назад">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -1333,7 +1354,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                     </div>
                 </div>
                 <div class="home-reviews__cta" data-aos="fade-up">
-                    <a href="https://instagram.com/ragefill.by" class="instagram-link" target="_blank" rel="noopener noreferrer">
+                    <a href="https://instagram.com/rage_fill" class="instagram-link" target="_blank" rel="noopener noreferrer">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                         Ещё отзывы в Instagram
                     </a>
@@ -1353,33 +1374,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
         </main>
 
-        <footer class="home-footer">
-            <div class="home-container">
-                <div class="home-footer__inner">
-                    <div class="home-footer__brand">
-                        <div class="home-footer__logo"><span class="home-footer__logo-rage">RAGE</span> <span class="home-footer__logo-fill">FILL</span></div>
-                    </div>
-                    <div class="home-footer__links">
-                        <a href="/catalog">Каталог</a>
-                        <a href="#benefits">О нас</a>
-                        <a href="#faq">FAQ</a>
-                    </div>
-                    <a href="/catalog" class="home-footer__cta">Перейти в каталог</a>
-                    <div class="home-footer__social">
-                        <a href="https://t.me/{$contactTg}" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>
-                        </a>
-                        <a href="https://instagram.com/ragefill.by" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                        </a>
-                    </div>
-                </div>
-                <div class="home-footer__bottom">
-                    <span>&copy; {$year} RAGEFILL. Все права защищены.</span>
-                    <a href="/privacy" class="site-footer__privacy-link">Политика конфиденциальности</a>
-                </div>
-            </div>
-        </footer>
+        {$footer}
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
         <script src="/js/lightbox.js?v=3.0.0" data-cfasync="false"></script>
@@ -1611,11 +1606,10 @@ function renderAboutPage(array $config, SeoHelper $seo): string
             <!-- Reviews -->
             <section class="about-section about-reviews" aria-label="Отзывы">
                 <h2 class="about-section__title">Отзывы наших клиентов</h2>
-                <p class="about-section__subtitle">Реальные отзывы из Instagram</p>
                 <div class="about-reviews__grid" id="about-reviews" data-gallery="{$aboutReviewSrcsJson}">
                     {$aboutReviewsHtml}
                 </div>
-                <a href="https://instagram.com/ragefill.by" class="instagram-link" target="_blank" rel="noopener noreferrer">
+                <a href="https://instagram.com/rage_fill" class="instagram-link" target="_blank" rel="noopener noreferrer">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                     Ещё отзывы в Instagram
                 </a>
