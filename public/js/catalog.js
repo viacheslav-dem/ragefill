@@ -41,6 +41,7 @@ if (tg) {
 
 const API_BASE = '/api';
 const DESKTOP_BREAKPOINT = 1024;
+const FOCUSABLE_SELECTOR = 'button, [href], input, [tabindex]:not([tabindex="-1"])';
 const catalogEl = document.getElementById('catalog');
 
 // Prevent SSR link navigation — JS will handle clicks via modals
@@ -68,6 +69,53 @@ let modalTriggerEl = null; // element that opened the modal, for focus return
 fetch(`${API_BASE}/settings`).then(r => r.json()).then(s => {
     if (s.contact_telegram) contactTelegram = s.contact_telegram;
 }).catch(() => {});
+
+// --- Utilities ---
+function esc(text) {
+    return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function plural(n, one, few, many) {
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+    return many;
+}
+
+function stripHtml(html) {
+    return new DOMParser().parseFromString(html || '', 'text/html').body.textContent || '';
+}
+
+function isTruthy(val) {
+    return val === 1 || val === '1';
+}
+
+function isInStock(sauce) {
+    return sauce.in_stock !== 0 && sauce.in_stock !== '0';
+}
+
+function isHtmlContent(str) {
+    return /<[a-z][\s\S]*>/i.test(str);
+}
+
+function cleanQuillHtml(html) {
+    let clean = (html || '').trim()
+        .replace(/<p><br><\/p>/gi, '')
+        .replace(/<br><\/p>/gi, '</p>')
+        .replace(/<p>\s*<\/p>/gi, '');
+    return DOMPurify.sanitize(clean, {
+        ALLOWED_TAGS: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li', 'span'],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    });
+}
+
+function haptic(type, style) {
+    try {
+        if (tg?.HapticFeedback) {
+            type === 'impact' ? tg.HapticFeedback.impactOccurred(style || 'light') : tg.HapticFeedback.notificationOccurred(style || 'success');
+        }
+    } catch (_) {}
+}
 
 // --- Heat helpers ---
 const HEAT_TIERS = [
@@ -132,50 +180,50 @@ async function loadCatalog() {
 }
 
 // --- Render ---
-function renderCatalog(sauces) {
-    if (sauces.length === 0) {
-        const hasActiveSearch = searchInput.value.trim().length > 0 || getActiveFilterCount() > 0;
-        const emptyHint = 'Скоро здесь появятся товары';
-        catalogEl.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state__icon">${hasActiveSearch ? '&#128269;' : '&#127798;&#65039;'}</div>
-                <div class="empty-state__text">${hasActiveSearch ? 'Ничего не найдено' : 'Каталог пока пуст'}</div>
-                <div class="empty-state__hint">${hasActiveSearch ? 'Попробуйте изменить запрос или сбросить фильтры' : emptyHint}</div>
-                ${hasActiveSearch ? '<button class="empty-state__btn" onclick="resetFilters()">Сбросить</button>' : ''}
-            </div>
-        `;
+function renderEmptyState() {
+    const hasActiveSearch = searchInput.value.trim().length > 0 || getActiveFilterCount() > 0;
+    catalogEl.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state__icon">${hasActiveSearch ? '&#128269;' : '&#127798;&#65039;'}</div>
+            <div class="empty-state__text">${hasActiveSearch ? 'Ничего не найдено' : 'Каталог пока пуст'}</div>
+            <div class="empty-state__hint">${hasActiveSearch ? 'Попробуйте изменить запрос или сбросить фильтры' : 'Скоро здесь появятся товары'}</div>
+            ${hasActiveSearch ? '<button class="empty-state__btn" onclick="resetFilters()">Сбросить</button>' : ''}
+        </div>
+    `;
+}
+
+function handleCardClick(card) {
+    const sauce = allSauces.find(s => s.id == card.dataset.id);
+    if (!sauce) return;
+    if (!tg && window.innerWidth >= DESKTOP_BREAKPOINT) {
+        window.location.href = `/sauce/${card.dataset.slug}`;
         return;
     }
+    modalTriggerEl = card;
+    haptic('impact', 'light');
+    openModal(sauce);
+}
 
-    catalogEl.innerHTML = sauces.map((s, i) => renderCard(s, i)).join('');
-
+function bindCardEvents() {
     catalogEl.querySelectorAll('.sauce-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const sauce = allSauces.find(s => s.id == card.dataset.id);
-            if (!sauce) return;
-            // Desktop browser: navigate to product page
-            if (!tg && window.innerWidth >= DESKTOP_BREAKPOINT) {
-                const slug = card.dataset.slug;
-                window.location.href = `/sauce/${slug}`;
-                return;
-            }
-            // Mobile / Telegram: open modal
-            modalTriggerEl = card;
-            haptic('impact', 'light');
-            openModal(sauce);
-        });
+        card.addEventListener('click', () => handleCardClick(card));
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
         });
     });
-
     catalogEl.querySelectorAll('.sauce-card__image').forEach(img => {
         img.addEventListener('error', function () {
-            const p = document.createElement('div');
-            p.className = 'sauce-card__image-placeholder';
-            this.replaceWith(p);
+            const placeholder = document.createElement('div');
+            placeholder.className = 'sauce-card__image-placeholder';
+            this.replaceWith(placeholder);
         });
     });
+}
+
+function renderCatalog(sauces) {
+    if (sauces.length === 0) { renderEmptyState(); return; }
+    catalogEl.innerHTML = sauces.map((s, i) => renderCard(s, i)).join('');
+    bindCardEvents();
 }
 
 function renderCard(sauce, index) {
@@ -194,8 +242,8 @@ function renderCard(sauce, index) {
     const delay = Math.min(index * 60, 400);
     const peppers = renderPeppers(heat, 5);
 
-    const isHit = sauce.is_hit === 1 || sauce.is_hit === '1';
-    const isLowStock = sauce.is_low_stock === 1 || sauce.is_low_stock === '1';
+    const isHit = isTruthy(sauce.is_hit);
+    const isLowStock = isTruthy(sauce.is_low_stock);
     const hitBadge = isHit ? '<span class="sauce-card__badge sauce-card__badge--hit">ХИТ</span>' : '';
     const lowStockBadge = isLowStock ? '<span class="sauce-card__badge sauce-card__badge--low">МАЛО</span>' : '';
 
@@ -371,7 +419,7 @@ function openModal(sauce) {
     document.body.classList.add('modal-open');
 
     requestAnimationFrame(() => {
-        const firstFocusable = modal.querySelector('button, [href], input, [tabindex]:not([tabindex="-1"])');
+        const firstFocusable = modal.querySelector(FOCUSABLE_SELECTOR);
         if (firstFocusable) firstFocusable.focus();
     });
 
@@ -400,7 +448,7 @@ document.addEventListener('keydown', (e) => {
     if (!modalOverlay.classList.contains('active')) return;
     if (e.key === 'Escape') { closeModal(); return; }
     if (e.key === 'Tab') {
-        const focusable = modal.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
+        const focusable = modal.querySelectorAll(FOCUSABLE_SELECTOR);
         if (focusable.length === 0) return;
         const first = focusable[0], last = focusable[focusable.length - 1];
         if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
@@ -433,25 +481,17 @@ function initChipGroup(container, selector, dataAttr, ariaAttr, onSelect) {
     });
 }
 
-// --- Heat filter chips ---
-initChipGroup(filterChipsContainer, '.toolbar__chip', 'filter', 'aria-checked', (val) => {
-    activeFilter = val;
-    updateFilterBadge();
-    applyFilters();
-});
-
-// --- Category filter chips ---
-initChipGroup(categoryChipsContainer, '.toolbar__chip', 'category', 'aria-checked', (val) => {
-    categoryFilter = val;
-    updateFilterBadge();
-    applyFilters();
-});
-
-// --- Stock toggle ---
-initChipGroup(stockToggle, '.toolbar__chip[data-stock]', 'stock', 'aria-checked', (val) => {
-    stockFilter = val;
-    updateFilterBadge();
-    applyFilters();
+// --- Mobile filter chips ---
+[
+    { container: filterChipsContainer, selector: '.toolbar__chip', attr: 'filter', setState: (v) => { activeFilter = v; } },
+    { container: categoryChipsContainer, selector: '.toolbar__chip', attr: 'category', setState: (v) => { categoryFilter = v; } },
+    { container: stockToggle, selector: '.toolbar__chip[data-stock]', attr: 'stock', setState: (v) => { stockFilter = v; } },
+].forEach(({ container, selector, attr, setState }) => {
+    initChipGroup(container, selector, attr, 'aria-checked', (val) => {
+        setState(val);
+        updateFilterBadge();
+        applyFilters();
+    });
 });
 
 function getFilteredSauces() {
@@ -492,86 +532,56 @@ window.addEventListener('scroll', () => {
     toolbar.classList.toggle('scrolled', window.scrollY > 10);
 }, { passive: true });
 
-// Pull-to-refresh with visual indicator
-const ptrIndicator = document.createElement('div');
-ptrIndicator.className = 'ptr-indicator';
-ptrIndicator.innerHTML = '<svg class="ptr-spinner" viewBox="0 0 24 24" width="24" height="24"><path d="M12 4V1L8 5l4 4V6a6 6 0 016 6 6 6 0 01-6 6 6 6 0 01-6-6H4a8 8 0 008 8 8 8 0 008-8 8 8 0 00-8-8z" fill="currentColor"/></svg>';
-document.body.prepend(ptrIndicator);
+// --- Pull-to-refresh ---
+(function initPullToRefresh() {
+    const PULL_THRESHOLD = 120;
+    const PULL_DAMPING = 0.4;
 
-let pullStartY = 0, isPulling = false;
-document.addEventListener('touchstart', (e) => {
-    if (window.scrollY === 0 && !modalOverlay.classList.contains('active')) { pullStartY = e.touches[0].clientY; isPulling = true; }
-}, { passive: true });
-document.addEventListener('touchmove', (e) => {
-    if (!isPulling) return;
-    const pullDist = e.touches[0].clientY - pullStartY;
-    if (pullDist > 0 && pullDist <= 120 && window.scrollY === 0) {
-        const progress = Math.min(pullDist / 120, 1);
-        ptrIndicator.style.transform = `translateX(-50%) translateY(${pullDist * 0.4}px)`;
-        ptrIndicator.style.opacity = progress;
-        ptrIndicator.querySelector('.ptr-spinner').style.transform = `rotate(${progress * 360}deg)`;
-    }
-    if (pullDist > 120 && window.scrollY === 0) {
-        isPulling = false;
-        ptrIndicator.classList.add('refreshing');
-        haptic('notification', 'success');
-        loadCatalog().then(() => {
-            ptrIndicator.classList.remove('refreshing');
-            ptrIndicator.style.transform = '';
-            ptrIndicator.style.opacity = '';
-        });
-    }
-}, { passive: true });
-document.addEventListener('touchend', () => {
-    if (isPulling) {
-        isPulling = false;
-        ptrIndicator.style.transform = '';
-        ptrIndicator.style.opacity = '';
-    }
-}, { passive: true });
+    const indicator = document.createElement('div');
+    indicator.className = 'ptr-indicator';
+    indicator.innerHTML = '<svg class="ptr-spinner" viewBox="0 0 24 24" width="24" height="24"><path d="M12 4V1L8 5l4 4V6a6 6 0 016 6 6 6 0 01-6 6 6 6 0 01-6-6H4a8 8 0 008 8 8 8 0 008-8 8 8 0 00-8-8z" fill="currentColor"/></svg>';
+    document.body.prepend(indicator);
 
-function haptic(type, style) {
-    try {
-        if (tg?.HapticFeedback) {
-            type === 'impact' ? tg.HapticFeedback.impactOccurred(style || 'light') : tg.HapticFeedback.notificationOccurred(style || 'success');
+    let startY = 0, pulling = false;
+
+    function canPull() {
+        return window.scrollY === 0 && !modalOverlay.classList.contains('active');
+    }
+
+    function resetIndicator() {
+        pulling = false;
+        indicator.style.transform = '';
+        indicator.style.opacity = '';
+    }
+
+    document.addEventListener('touchstart', (e) => {
+        if (canPull()) { startY = e.touches[0].clientY; pulling = true; }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!pulling) return;
+        const dist = e.touches[0].clientY - startY;
+        if (dist > 0 && dist <= PULL_THRESHOLD && window.scrollY === 0) {
+            const progress = dist / PULL_THRESHOLD;
+            indicator.style.transform = `translateX(-50%) translateY(${dist * PULL_DAMPING}px)`;
+            indicator.style.opacity = progress;
+            indicator.querySelector('.ptr-spinner').style.transform = `rotate(${progress * 360}deg)`;
         }
-    } catch (e) {}
-}
+        if (dist > PULL_THRESHOLD && window.scrollY === 0) {
+            pulling = false;
+            indicator.classList.add('refreshing');
+            haptic('notification', 'success');
+            loadCatalog().then(() => {
+                indicator.classList.remove('refreshing');
+                resetIndicator();
+            });
+        }
+    }, { passive: true });
 
-function isInStock(sauce) {
-    return sauce.in_stock !== 0 && sauce.in_stock !== '0';
-}
-
-function isHtmlContent(str) {
-    return /<[a-z][\s\S]*>/i.test(str);
-}
-
-function cleanQuillHtml(html) {
-    let clean = (html || '').trim();
-    clean = clean.replace(/<p><br><\/p>/gi, '');
-    clean = clean.replace(/<br><\/p>/gi, '</p>');
-    clean = clean.replace(/<p>\s*<\/p>/gi, '');
-    return DOMPurify.sanitize(clean.trim(), {
-        ALLOWED_TAGS: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li', 'span'],
-        ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-    });
-}
-
-function stripHtml(html) {
-    const doc = new DOMParser().parseFromString(html || '', 'text/html');
-    return doc.body.textContent || '';
-}
-
-function plural(n, one, few, many) {
-    const mod10 = n % 10, mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11) return one;
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-    return many;
-}
-
-function esc(text) {
-    return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+    document.addEventListener('touchend', () => {
+        if (pulling) resetIndicator();
+    }, { passive: true });
+})();
 
 const footerYear = document.getElementById('footer-year');
 if (footerYear) footerYear.textContent = new Date().getFullYear();

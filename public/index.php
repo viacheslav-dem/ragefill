@@ -715,6 +715,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
 
         {$footer}
 
+        <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
         <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
         <script data-cfasync="false">
             const _tgRaw = window.Telegram?.WebApp;
@@ -1211,6 +1212,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             </div>
         </footer>
 
+        <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
         <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
         <script src="/js/slider.js?v=1.0.0" data-cfasync="false"></script>
         <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
@@ -1461,6 +1463,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
 
         {$footer}
 
+        <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
         <script src="/js/lightbox.js?v=1.1.0" data-cfasync="false"></script>
         <script>
             (function() {

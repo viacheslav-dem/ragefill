@@ -1805,6 +1805,42 @@ select.form-input {
 .toast.error { border-left: 3px solid var(--danger); }
 .toast.success { border-left: 3px solid var(--success); }
 
+/* === SCROLL TO TOP === */
+.scroll-top {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s, background 0.2s, color 0.2s;
+}
+.scroll-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+.scroll-top:hover {
+    background: var(--fire-orange);
+    border-color: var(--fire-orange);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(232, 89, 12, 0.3);
+}
+body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
+.scroll-top:focus-visible { outline: 2px solid var(--fire-orange); outline-offset: 2px; }
+
 /* === Pull-to-Refresh === */
 .ptr-indicator {
     position: fixed;
