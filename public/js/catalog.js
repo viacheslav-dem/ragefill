@@ -42,6 +42,12 @@ if (tg) {
 const API_BASE = '/api';
 const DESKTOP_BREAKPOINT = 1024;
 const FOCUSABLE_SELECTOR = 'button, [href], input, [tabindex]:not([tabindex="-1"])';
+const DEBOUNCE_DELAY = 200;
+const ANIMATION_DURATION = 500;
+const CARD_ANIMATION_STEP = 60;
+const MAX_ANIMATION_DELAY = 400;
+const SCROLL_THRESHOLD = 10;
+const FILTER_ALL = 'all';
 const catalogEl = document.getElementById('catalog');
 
 // Prevent SSR link navigation — JS will handle clicks via modals
@@ -60,15 +66,15 @@ const resetBtn = document.getElementById('toolbar-reset-btn');
 
 let allSauces = [];
 let contactTelegram = 'rage_fill';
-let activeFilter = 'all';
-let stockFilter = 'all'; // 'all' | 'in_stock' | 'out_of_stock'
-let categoryFilter = 'all'; // 'all' | 'sauce' | 'gift_set' | 'pickled_pepper' | 'spicy_peanut' | 'spice'
+let activeFilter = FILTER_ALL;
+let stockFilter = FILTER_ALL;
+let categoryFilter = FILTER_ALL;
 let searchDebounceTimer = null;
 let modalTriggerEl = null; // element that opened the modal, for focus return
 
 fetch(`${API_BASE}/settings`).then(r => r.json()).then(s => {
     if (s.contact_telegram) contactTelegram = s.contact_telegram;
-}).catch(() => {});
+}).catch(err => console.warn('Settings load failed:', err));
 
 // --- Utilities ---
 function esc(text) {
@@ -157,8 +163,14 @@ function showSkeletons() {
 async function loadCatalog() {
     showSkeletons();
     try {
-        const res = await fetch(`${API_BASE}/sauces`);
-        allSauces = await res.json();
+        if (window.__SSR_SAUCES__) {
+            allSauces = window.__SSR_SAUCES__;
+            delete window.__SSR_SAUCES__;
+        } else {
+            const res = await fetch(`${API_BASE}/sauces`);
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            allSauces = await res.json();
+        }
         // Pre-compute plain-text for search (avoids DOMParser per keystroke)
         allSauces.forEach(s => {
             s._searchText = (s.name + ' ' + stripHtml(s.description) + ' ' + (s.composition || '')).toLowerCase();
@@ -166,14 +178,14 @@ async function loadCatalog() {
         // Animate cards only on load, not on filter changes
         catalogEl.classList.add('catalog--animate');
         applyFilters();
-        setTimeout(() => catalogEl.classList.remove('catalog--animate'), 500);
+        setTimeout(() => catalogEl.classList.remove('catalog--animate'), ANIMATION_DURATION);
     } catch (err) {
         catalogEl.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state__icon">&#9888;&#65039;</div>
                 <div class="empty-state__text">Ошибка загрузки</div>
                 <div class="empty-state__hint">${tg ? 'Потяните вниз для обновления' : 'Попробуйте обновить страницу'}</div>
-                <button class="empty-state__btn" onclick="loadCatalog()">Повторить</button>
+                <button class="empty-state__btn" data-action="retry">Повторить</button>
             </div>
         `;
     }
@@ -187,7 +199,7 @@ function renderEmptyState() {
             <div class="empty-state__icon">${hasActiveSearch ? '&#128269;' : '&#127798;&#65039;'}</div>
             <div class="empty-state__text">${hasActiveSearch ? 'Ничего не найдено' : 'Каталог пока пуст'}</div>
             <div class="empty-state__hint">${hasActiveSearch ? 'Попробуйте изменить запрос или сбросить фильтры' : 'Скоро здесь появятся товары'}</div>
-            ${hasActiveSearch ? '<button class="empty-state__btn" onclick="resetFilters()">Сбросить</button>' : ''}
+            ${hasActiveSearch ? '<button class="empty-state__btn" data-action="reset">Сбросить</button>' : ''}
         </div>
     `;
 }
@@ -220,6 +232,14 @@ function bindCardEvents() {
     });
 }
 
+// Event delegation for dynamically rendered buttons (empty state, error state)
+catalogEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'retry') loadCatalog();
+    if (btn.dataset.action === 'reset') resetFilters();
+});
+
 function renderCatalog(sauces) {
     if (sauces.length === 0) { renderEmptyState(); return; }
     catalogEl.innerHTML = sauces.map((s, i) => renderCard(s, i)).join('');
@@ -239,7 +259,7 @@ function renderCard(sauce, index) {
         ? `<img class="sauce-card__image" src="/uploads/${esc(sauce.image)}" alt="${esc(sauce.name)}" loading="lazy">`
         : `<div class="sauce-card__image-placeholder"></div>`;
 
-    const delay = Math.min(index * 60, 400);
+    const delay = Math.min(index * CARD_ANIMATION_STEP, MAX_ANIMATION_DELAY);
     const peppers = renderPeppers(heat, 5);
 
     const isHit = isTruthy(sauce.is_hit);
@@ -256,8 +276,8 @@ function renderCard(sauce, index) {
                 ${lowStockBadge}
             </div>
             <div class="sauce-card__content">
-                <h3 class="sauce-card__name">${esc(sauce.name)}</h3>
-                ${sauce.subtitle ? `<div class="sauce-card__subtitle">${esc(sauce.subtitle)}</div>` : ''}
+                <h3 class="sauce-card__name line-clamp line-clamp-2">${esc(sauce.name)}</h3>
+                ${sauce.subtitle ? `<div class="sauce-card__subtitle line-clamp line-clamp-2">${esc(sauce.subtitle)}</div>` : ''}
                 <div class="sauce-card__bottom">
                     <div class="sauce-card__peppers">
                         <span class="sauce-card__pepper-icons">${peppers}</span>
@@ -285,19 +305,19 @@ function syncRadioGroup(container, selector, dataAttr, activeValue) {
 
 function resetFilters() {
     searchInput.value = '';
-    activeFilter = 'all';
-    stockFilter = 'all';
-    categoryFilter = 'all';
-    syncRadioGroup(filterChipsContainer, '.toolbar__chip', 'filter', 'all');
-    syncRadioGroup(stockToggle, '.toolbar__chip[data-stock]', 'stock', 'all');
-    syncRadioGroup(categoryChipsContainer, '.toolbar__chip', 'category', 'all');
+    activeFilter = FILTER_ALL;
+    stockFilter = FILTER_ALL;
+    categoryFilter = FILTER_ALL;
+    syncRadioGroup(filterChipsContainer, '.toolbar__chip', 'filter', FILTER_ALL);
+    syncRadioGroup(stockToggle, '.toolbar__chip[data-stock]', 'stock', FILTER_ALL);
+    syncRadioGroup(categoryChipsContainer, '.toolbar__chip', 'category', FILTER_ALL);
     updateFilterBadge();
     applyFilters();
     syncSidebarFromState();
 }
 
 function getActiveFilterCount() {
-    return (categoryFilter !== 'all') + (activeFilter !== 'all') + (stockFilter !== 'all');
+    return (categoryFilter !== FILTER_ALL) + (activeFilter !== FILTER_ALL) + (stockFilter !== FILTER_ALL);
 }
 
 function updateFilterBadge() {
@@ -358,13 +378,14 @@ function setRichContent(el, content) {
 
 function setOptionalBlock(blockId, valueId, content, renderFn) {
     const block = document.getElementById(blockId);
+    if (!block) return;
     if (!content) { block.style.display = 'none'; return; }
     if (renderFn) renderFn(document.getElementById(valueId), content);
     else document.getElementById(valueId).textContent = content;
     block.style.display = 'block';
 }
 
-function openModal(sauce) {
+function populateModalContent(sauce) {
     const inStock = isInStock(sauce);
 
     setModalImage(sauce);
@@ -414,16 +435,21 @@ function openModal(sauce) {
         contactBtn.textContent = inStock ? 'Написать продавцу' : 'Узнать о наличии';
         contactBtn.classList.toggle('modal__contact-btn--secondary', !inStock);
     }
+}
 
+function showModal() {
     modalOverlay.classList.add('active');
     document.body.classList.add('modal-open');
-
     requestAnimationFrame(() => {
         const firstFocusable = modal.querySelector(FOCUSABLE_SELECTOR);
         if (firstFocusable) firstFocusable.focus();
     });
-
     if (tg) { tg.BackButton.show(); tg.BackButton.onClick(closeModal); }
+}
+
+function openModal(sauce) {
+    populateModalContent(sauce);
+    showModal();
 }
 
 function closeModal() {
@@ -462,10 +488,18 @@ modal.addEventListener('touchmove', (e) => {
     if (e.touches[0].clientY - touchStartY > 100 && modal.scrollTop <= 0) closeModal();
 }, { passive: true });
 
-document.getElementById('modal-contact-btn').addEventListener('click', () => {
+document.getElementById('modal-contact-btn').addEventListener('click', (e) => {
     haptic('impact', 'medium');
     const link = `https://t.me/${contactTelegram}`;
-    tg ? tg.openTelegramLink(link) : window.open(link, '_blank');
+    if (tg) {
+        tg.openTelegramLink(link);
+    } else {
+        const btn = e.currentTarget;
+        const originalText = btn.textContent;
+        btn.textContent = 'Открываем Telegram...';
+        window.open(link, '_blank');
+        setTimeout(() => { btn.textContent = originalText; }, 2000);
+    }
 });
 
 // --- Chip group helper ---
@@ -497,17 +531,35 @@ function initChipGroup(container, selector, dataAttr, ariaAttr, onSelect) {
 function getFilteredSauces() {
     const q = searchInput.value.trim().toLowerCase();
     let list = allSauces;
-    if (categoryFilter !== 'all') list = list.filter(s => (s.category || 'sauce') === categoryFilter);
+    if (categoryFilter !== FILTER_ALL) list = list.filter(s => (s.category || 'sauce') === categoryFilter);
     if (q) list = list.filter(s => s._searchText.includes(q));
-    if (activeFilter !== 'all') list = list.filter(s => getHeatTier(s.heat_level).id === activeFilter);
+    if (activeFilter !== FILTER_ALL) list = list.filter(s => getHeatTier(s.heat_level).id === activeFilter);
     if (stockFilter === 'in_stock') list = list.filter(isInStock);
     if (stockFilter === 'out_of_stock') list = list.filter(s => !isInStock(s));
-    // Out of stock items go to the bottom
     list.sort((a, b) => (isInStock(a) ? 0 : 1) - (isInStock(b) ? 0 : 1));
     return list;
 }
 
 const searchHint = document.getElementById('search-hint');
+
+function pushFiltersToUrl() {
+    const params = new URLSearchParams();
+    if (categoryFilter !== FILTER_ALL) params.set('category', categoryFilter);
+    if (activeFilter !== FILTER_ALL) params.set('heat', activeFilter);
+    if (stockFilter !== FILTER_ALL) params.set('stock', stockFilter);
+    const q = searchInput.value.trim();
+    if (q) params.set('q', q);
+    const qs = params.toString();
+    history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+}
+
+function restoreFiltersFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('category')) categoryFilter = params.get('category');
+    if (params.has('heat')) activeFilter = params.get('heat');
+    if (params.has('stock')) stockFilter = params.get('stock');
+    if (params.has('q')) searchInput.value = params.get('q');
+}
 
 function applyFilters() {
     const filtered = getFilteredSauces();
@@ -521,15 +573,16 @@ function applyFilters() {
     renderCatalog(filtered);
     updateDesktopResults(filtered.length);
     syncSidebarFromState();
+    pushFiltersToUrl();
 }
 
 searchInput.addEventListener('input', () => {
     clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => applyFilters(), 200);
+    searchDebounceTimer = setTimeout(() => applyFilters(), DEBOUNCE_DELAY);
 });
 
 window.addEventListener('scroll', () => {
-    toolbar.classList.toggle('scrolled', window.scrollY > 10);
+    toolbar.classList.toggle('scrolled', window.scrollY > SCROLL_THRESHOLD);
 }, { passive: true });
 
 // --- Pull-to-refresh ---
@@ -604,7 +657,7 @@ if (desktopSearchInput) {
     desktopSearchInput.addEventListener('input', () => {
         searchInput.value = desktopSearchInput.value;
         clearTimeout(desktopSearchTimer);
-        desktopSearchTimer = setTimeout(() => applyFilters(), 200);
+        desktopSearchTimer = setTimeout(() => applyFilters(), DEBOUNCE_DELAY);
     });
 }
 
@@ -685,4 +738,7 @@ function updateDesktopResults(count) {
     window.addEventListener('resize', update);
 })();
 
+restoreFiltersFromUrl();
+updateFilterBadge();
+syncSidebarFromState();
 loadCatalog();

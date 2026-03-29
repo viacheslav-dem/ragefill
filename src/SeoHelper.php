@@ -54,7 +54,7 @@ class SeoHelper
             ? $this->baseUrl . '/uploads/' . $sauce['image']
             : '';
 
-        return $this->buildMetaTags($title, $desc, $url, $image);
+        return $this->buildMetaTags($title, $desc, $url, $image, 'product');
     }
 
     /**
@@ -135,16 +135,22 @@ class SeoHelper
     }
 
     /**
-     * JSON-LD for the catalog (Organization + WebSite)
+     * Organization / LocalBusiness JSON-LD (reusable on any page)
      */
-    public function catalogJsonLd(array $sauces = []): string
+    public function organizationJsonLd(): string
     {
         $org = [
             '@context' => 'https://schema.org',
-            '@type' => 'Organization',
+            '@type' => 'LocalBusiness',
             'name' => 'RAGEFILL',
             'url' => $this->baseUrl,
             'description' => 'Производитель сверхострых соусов ручной работы в Беларуси',
+            'address' => [
+                '@type' => 'PostalAddress',
+                'addressLocality' => 'Минск',
+                'addressCountry' => 'BY',
+            ],
+            'areaServed' => 'BY',
             'contactPoint' => [
                 '@type' => 'ContactPoint',
                 'contactType' => 'sales',
@@ -152,6 +158,38 @@ class SeoHelper
             ],
         ];
 
+        return '<script type="application/ld+json">'
+            . json_encode($org, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            . '</script>';
+    }
+
+    /**
+     * WebSite JSON-LD with SearchAction
+     */
+    public function websiteJsonLd(): string
+    {
+        $data = [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            'name' => 'RAGEFILL',
+            'url' => $this->baseUrl,
+            'potentialAction' => [
+                '@type' => 'SearchAction',
+                'target' => $this->baseUrl . '/catalog?q={search_term_string}',
+                'query-input' => 'required name=search_term_string',
+            ],
+        ];
+
+        return '<script type="application/ld+json">'
+            . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            . '</script>';
+    }
+
+    /**
+     * JSON-LD for the catalog (Organization + ItemList)
+     */
+    public function catalogJsonLd(array $sauces = []): string
+    {
         $items = [];
         foreach ($sauces as $i => $sauce) {
             $items[] = [
@@ -170,9 +208,7 @@ class SeoHelper
             'itemListElement' => $items,
         ];
 
-        return '<script type="application/ld+json">'
-            . json_encode($org, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-            . '</script>' . "\n"
+        return $this->organizationJsonLd() . "\n"
             . '<script type="application/ld+json">'
             . json_encode($itemList, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
             . '</script>';
@@ -203,7 +239,7 @@ class SeoHelper
         $tier = $this->getHeatTier($heat);
         $peppers = $this->renderPeppers($heat);
 
-        $subtitleHtml = $subtitle ? '<div class="sauce-card__subtitle">' . $subtitle . '</div>' : '';
+        $subtitleHtml = $subtitle ? '<div class="sauce-card__subtitle line-clamp line-clamp-2">' . $subtitle . '</div>' : '';
         $slug = htmlspecialchars($sauce['slug'] ?? (string)$id, ENT_QUOTES, 'UTF-8');
 
         return <<<HTML
@@ -215,7 +251,7 @@ class SeoHelper
                 {$lowStockBadge}
             </div>
             <div class="sauce-card__content">
-                <h3 class="sauce-card__name">{$name}</h3>
+                <h3 class="sauce-card__name line-clamp line-clamp-2">{$name}</h3>
                 {$subtitleHtml}
                 <div class="sauce-card__bottom">
                     <div class="sauce-card__peppers">
@@ -242,6 +278,9 @@ class SeoHelper
 
         // Catalog
         $xml .= $this->sitemapUrl($this->baseUrl . '/catalog', '0.9', 'daily');
+
+        // Privacy policy
+        $xml .= $this->sitemapUrl($this->baseUrl . '/privacy', '0.3', 'yearly');
 
         // Product pages
         foreach ($sauces as $sauce) {
@@ -280,7 +319,7 @@ class SeoHelper
 
     // --- Private helpers ---
 
-    private function buildMetaTags(string $title, string $desc, string $url, string $image): string
+    private function buildMetaTags(string $title, string $desc, string $url, string $image, string $ogType = 'website'): string
     {
         $t = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
         $d = htmlspecialchars($desc, ENT_QUOTES, 'UTF-8');
@@ -289,7 +328,7 @@ class SeoHelper
         $html = <<<HTML
         <meta name="description" content="{$d}">
         <link rel="canonical" href="{$u}">
-        <meta property="og:type" content="website">
+        <meta property="og:type" content="{$ogType}">
         <meta property="og:title" content="{$t}">
         <meta property="og:description" content="{$d}">
         <meta property="og:url" content="{$u}">

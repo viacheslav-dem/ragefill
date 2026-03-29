@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{SEO_TITLE}}</title>
     {{SEO_META}}
-    <link rel="alternate" hreflang="ru-BY" href="https://ragefill.by/catalog">
+    <link rel="alternate" hreflang="ru-BY" href="{{HREFLANG_URL}}">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -33,6 +34,7 @@
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
                 <path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
             </svg>
+            <label for="desktop-search-input" class="visually-hidden">Поиск по каталогу</label>
             <input type="text" class="header__search-input" id="desktop-search-input" placeholder="Поиск по каталогу..." autocomplete="off">
         </div>
         <div class="header__actions">
@@ -68,6 +70,7 @@
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
                 <path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
             </svg>
+            <label for="search-input" class="visually-hidden">Поиск по каталогу</label>
             <input type="text" class="toolbar__search-input" id="search-input" placeholder="Найти..." autocomplete="off">
         </div>
         <button class="toolbar__filter-btn" id="filter-toggle-btn" aria-expanded="false" aria-controls="filter-dropdown" aria-label="Фильтры">
@@ -208,7 +211,7 @@
     <!-- Product grid -->
     <section class="catalog-section" aria-label="Товары">
         <div class="catalog-section__topbar">
-            <h2 class="visually-hidden" id="catalog-heading">Острые соусы</h2>
+            <h2 class="visually-hidden" id="catalog-heading">Каталог RAGEFILL</h2>
             <div class="catalog-section__results" id="desktop-results-count" aria-live="polite" aria-atomic="true"></div>
         </div>
         <div id="catalog" class="catalog" role="list" aria-labelledby="catalog-heading">{{SSR_PRODUCTS}}</div>
@@ -225,7 +228,9 @@
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-name" aria-describedby="modal-description">
         <div class="modal__top-bar">
             <div class="modal__handle"></div>
-            <button class="modal__close" id="modal-close-btn" aria-label="Закрыть">&times;</button>
+            <button class="modal__close" id="modal-close-btn" aria-label="Закрыть">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
         </div>
         <div class="modal__layout">
             <div id="modal-image-container" class="modal__image-wrapper"></div>

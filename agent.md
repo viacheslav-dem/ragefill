@@ -42,7 +42,8 @@ tg_bot_ragefill/
 │
 ├── src/
 │   ├── Database.php           # ORM-обёртка над SQLite (CRUD, миграции)
-│   └── AuthMiddleware.php     # PSR-15 middleware для Bearer token auth
+│   ├── AuthMiddleware.php     # PSR-15 middleware для Bearer token auth
+│   └── SeoHelper.php          # SEO: мета-теги, JSON-LD, sitemap, robots.txt, SSR-карточки
 │
 ├── public/                    # Document root
 │   ├── index.php              # Slim 4 entry point (API + роутинг)
@@ -51,11 +52,16 @@ tg_bot_ragefill/
 │   ├── .htaccess              # Rewrite на index.php
 │   │
 │   ├── css/
-│   │   └── style.css          # Единый файл стилей (каталог + админка)
+│   │   ├── style.css          # Единый файл стилей (каталог + админка)
+│   │   └── aos.css            # AOS (Animate On Scroll) — self-hosted v2.3.4
 │   │
 │   ├── js/
 │   │   ├── catalog.js         # Логика каталога (фильтры, модалка, поиск)
-│   │   └── admin.js           # Логика админки (CRUD, Quill, загрузка фото)
+│   │   ├── admin.js           # Логика админки (CRUD, Quill, загрузка фото)
+│   │   ├── lightbox.js        # Lightbox для просмотра фото (stories-стиль)
+│   │   ├── scroll-top.js      # Кнопка "наверх"
+│   │   ├── slider.js          # Слайдер отзывов
+│   │   └── aos.js             # AOS (Animate On Scroll) — self-hosted v2.3.4
 │   │
 │   └── uploads/               # Загруженные изображения соусов
 │       ├── .gitkeep
@@ -357,6 +363,48 @@ return [
 - **Описания:** HTML от Quill рендерится в модалке (доверенный контент из админки)
 - **SQL:** prepared statements во всех запросах
 - **CORS:** ограничен `base_url` из конфига
+- **API X-Robots-Tag:** все `/api/*` ответы содержат `X-Robots-Tag: noindex`
+
+---
+
+## SEO (`SeoHelper.php`)
+
+### Мета-теги и Open Graph
+- Все страницы: `<title>`, `<meta description>`, canonical, OG tags, Twitter Card
+- Продуктовые страницы: `og:type = product` (остальные — `website`)
+- `hreflang="ru-BY"` на всех страницах
+- apple-touch-icon (180x180) + favicon SVG + PNG 32x32
+
+### JSON-LD Structured Data
+- **Главная:** `FAQPage` + `LocalBusiness` + `WebSite` (с SearchAction)
+- **Каталог:** `LocalBusiness` + `ItemList` + `WebSite`
+- **Продукт:** `Product` (с Offer/availability) + `BreadcrumbList`
+
+### Методы SeoHelper
+| Метод | Назначение |
+|---|---|
+| `catalogMeta()` | Мета-теги для каталога |
+| `productMeta()` | Мета-теги для продукта (`og:type=product`) |
+| `productJsonLd()` | Product + Offer schema |
+| `breadcrumbJsonLd()` | BreadcrumbList для продуктовых страниц |
+| `organizationJsonLd()` | LocalBusiness schema (адрес, контакт, регион) |
+| `websiteJsonLd()` | WebSite schema с SearchAction |
+| `catalogJsonLd()` | Organization + ItemList для ка��алога |
+| `generateSitemap()` | XML-sitemap (/, /catalog, /privacy, все продукты) |
+| `generateRobotsTxt()` | robots.txt (Disallow: /admin, /api/) |
+| `renderProductCard()` | SSR HTML-карточка продукта |
+| `buildAboutMeta()` | Мета-теги для статических страниц |
+
+### Страницы
+| URL | Рендеринг | Описание |
+|---|---|---|
+| `/` | SSR (PHP) | Гл��вная с hero, featured, benefits, отзывы, FAQ |
+| `/catalog` | SSR + JS hydration | Каталог с фильтрами, SSR-карточки |
+| `/sauce/{slug}` | SSR (PHP) | Индивидуальная страница продукта |
+| `/privacy` | SSR (PHP) | Политика конфиденциальности |
+| `/admin` | Static HTML | Админ-панель |
+| `/sitemap.xml` | Dynamic | XML-карта сайта |
+| `/robots.txt` | Dynamic | Правила для роботов |
 
 ---
 

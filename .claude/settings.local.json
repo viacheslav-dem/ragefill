@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(node --check public/js/catalog.js)",
+      "Bash(curl -sL \"https://unpkg.com/aos@2.3.4/dist/aos.css\" -o css/aos.css)",
+      "Bash(curl -sL \"https://unpkg.com/aos@2.3.4/dist/aos.js\" -o js/aos.js)"
     ]
   }
 }

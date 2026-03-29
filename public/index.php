@@ -67,10 +67,18 @@ $app->addErrorMiddleware(
 $app->add(function (Request $request, $handler) use ($config) {
     $response = $handler->handle($request);
     $origin = $config['base_url'] ?? '*';
-    return $response
+    $response = $response
         ->withHeader('Access-Control-Allow-Origin', $origin)
         ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+
+    // Prevent search engines from indexing API responses
+    $path = $request->getUri()->getPath();
+    if (str_starts_with($path, '/api/')) {
+        $response = $response->withHeader('X-Robots-Tag', 'noindex');
+    }
+
+    return $response;
 });
 
 $app->options('/{routes:.+}', function (Request $request, Response $response) {
@@ -324,19 +332,25 @@ $app->get('/', function (Request $request, Response $response) use ($config, $se
 
 // --- Catalog with SSR ---
 
-$app->get('/catalog', function (Request $request, Response $response) use ($db, $seo) {
+$app->get('/catalog', function (Request $request, Response $response) use ($db, $seo, $config) {
     $sauces = $db->getAllSauces(true);
     $html = file_get_contents(__DIR__ . '/catalog.html');
 
+    $baseUrl = rtrim($config['base_url'], '/');
     $html = str_replace('{{SEO_TITLE}}', 'Каталог — RAGEFILL | Острые соусы ручной работы', $html);
     $html = str_replace('{{SEO_META}}', $seo->catalogMeta($sauces), $html);
-    $html = str_replace('{{SEO_JSONLD}}', $seo->catalogJsonLd($sauces), $html);
+    $html = str_replace('{{SEO_JSONLD}}', $seo->catalogJsonLd($sauces) . "\n" . $seo->websiteJsonLd(), $html);
+    $html = str_replace('{{HREFLANG_URL}}', $baseUrl . '/catalog', $html);
 
     $ssrHtml = '';
     foreach ($sauces as $sauce) {
         $ssrHtml .= $seo->renderProductCard($sauce);
     }
     $html = str_replace('{{SSR_PRODUCTS}}', $ssrHtml, $html);
+
+    // Inject sauce data for JS to avoid a duplicate API fetch on initial load
+    $ssrJson = json_encode($sauces, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+    $html = str_replace('</body>', "<script>window.__SSR_SAUCES__={$ssrJson};</script>\n</body>", $html);
 
     $response->getBody()->write($html);
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
@@ -352,6 +366,14 @@ $app->get('/admin', function (Request $request, Response $response) {
 
 $app->get('/about', function (Request $request, Response $response) {
     return $response->withHeader('Location', '/')->withStatus(301);
+});
+
+// --- Privacy Policy ---
+
+$app->get('/privacy', function (Request $request, Response $response) use ($config, $seo) {
+    $html = renderPrivacyPage($config, $seo);
+    $response->getBody()->write($html);
+    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
 
 $app->run();
@@ -494,6 +516,7 @@ function renderFooter(array $config): string
         </div>
         <div class="site-footer__bottom">
             <div class="site-footer__copy">&copy; {$year} RAGEFILL. Все права защищены.</div>
+            <a href="/privacy" class="site-footer__privacy-link">Политика конфиденциальности</a>
         </div>
     </footer>
     HTML;
@@ -553,8 +576,9 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
     $stockClass = $inStock ? 'in' : 'out';
 
     $year = date('Y');
+    $baseUrl = rtrim($config['base_url'], '/');
     $sauceSlug = htmlspecialchars($sauce['slug'] ?? (string)$id, ENT_QUOTES, 'UTF-8');
-    $url = 'https://ragefill.by/sauce/' . $sauceSlug;
+    $url = $baseUrl . '/sauce/' . $sauceSlug;
     $metaTags = $seo->productMeta($sauce);
     $jsonLd = $seo->productJsonLd($sauce);
     $breadcrumbLd = $seo->breadcrumbJsonLd($sauce['name'], $sauceSlug);
@@ -617,6 +641,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
         <link rel="alternate" hreflang="ru-BY" href="{$url}">
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -716,7 +741,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config): string
         {$footer}
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=2.0.0" data-cfasync="false"></script>
+        <script src="/js/lightbox.js?v=3.0.0" data-cfasync="false"></script>
         <script data-cfasync="false">
             const _tgRaw = window.Telegram?.WebApp;
             const tg = (_tgRaw && _tgRaw.initData) ? _tgRaw : null;
@@ -832,6 +857,7 @@ function renderProductNotFound(): string
         <meta name="robots" content="noindex">
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -888,6 +914,105 @@ function renderProductNotFound(): string
     HTML;
 }
 
+function renderPrivacyPage(array $config, SeoHelper $seo): string
+{
+    $baseUrl = rtrim($config['base_url'], '/');
+    $title = 'Политика конфиденциальности — RAGEFILL';
+    $desc = 'Политика конфиденциальности интернет-магазина острых соусов RAGEFILL.';
+    $url = $baseUrl . '/privacy';
+    $metaTags = $seo->buildAboutMeta($title, $desc, $url);
+    $footer = renderFooter($config);
+    $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
+
+    return <<<HTML
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+        <title>{$title}</title>
+        {$metaTags}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <meta name="theme-color" content="#1C1410">
+        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
+    </head>
+    <body class="browser-mode">
+        <header class="header">
+            <div class="header__inner">
+                <a href="/" class="header__logo-link" aria-label="На главную">
+                    <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
+                </a>
+                <nav class="header__nav" id="main-nav">
+                    <a href="/catalog" class="header__nav-link">Каталог</a>
+                    <a href="/#benefits" class="header__nav-link">О нас</a>
+                    <a href="/#faq" class="header__nav-link">FAQ</a>
+                </nav>
+                <div class="header__actions">
+                    <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
+                        <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                        <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    </button>
+                    <button class="burger-btn" id="burger-btn" aria-label="Меню" aria-expanded="false">
+                        <span class="burger-btn__line"></span>
+                        <span class="burger-btn__line"></span>
+                        <span class="burger-btn__line"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <article class="privacy-page" style="max-width: 720px; margin: 0 auto; padding: 100px 20px 60px;">
+                <h1 style="font-family: var(--font-display); font-size: 2rem; margin-bottom: 24px;">Политика конфиденциальности</h1>
+
+                <p>Настоящая политика конфиденциальности описывает, как RAGEFILL обрабатывает информацию при использовании нашего сайта и Telegram-бота.</p>
+
+                <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin: 24px 0 12px;">Какие данные мы собираем</h2>
+                <ul style="padding-left: 20px; margin-bottom: 16px;">
+                    <li>Имя пользователя Telegram при оформлении заказа через бота</li>
+                    <li>Адрес доставки, указанный вами при заказе</li>
+                    <li>Техническая информация (IP-адрес, тип браузера) при посещении сайта</li>
+                </ul>
+
+                <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin: 24px 0 12px;">Как мы используем данные</h2>
+                <p>Данные используются исключительно для обработки и доставки заказов, а также для связи с вами по вопросам заказа. Мы не передаём ваши данные третьим лицам и не используем их в рекламных целях.</p>
+
+                <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin: 24px 0 12px;">Контакты</h2>
+                <p>По вопросам конфиденциальности обращайтесь в Telegram: <a href="https://t.me/{$contactTg}">@{$contactTg}</a></p>
+            </article>
+        </main>
+
+        {$footer}
+
+        <script data-cfasync="false">
+            (function(){
+                var saved=localStorage.getItem('ragefill-theme');
+                if(saved==='dark') document.body.classList.add('tg-dark');
+                var btn=document.getElementById('theme-toggle');
+                if(!btn) return;
+                btn.addEventListener('click',function(){
+                    var isDark=document.body.classList.toggle('tg-dark');
+                    localStorage.setItem('ragefill-theme',isDark?'dark':'light');
+                });
+            })();
+            (function(){
+                var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
+                if(!btn||!nav)return;
+                btn.addEventListener('click',function(){
+                    var open=nav.classList.toggle('open');
+                    btn.classList.toggle('open',open);
+                    btn.setAttribute('aria-expanded',String(open));
+                });
+            })();
+        </script>
+    </body>
+    </html>
+    HTML;
+}
+
 function sanitizeHtml(string $html): string
 {
     // Step 1: strip all tags except safe formatting ones
@@ -926,8 +1051,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $year = date('Y');
 
     // SEO
-    $title = 'RAGE FILL — Авторские острые соусы ручной работы | Минск, Беларусь';
-    $desc = 'Острые соусы ручной работы RAGE FILL. Собственные перцы, натуральные ингредиенты, от лёгкой до экстремальной остроты. Каталог, доставка по Беларуси.';
+    $title = 'RAGE FILL — Острые соусы ручной работы | Минск, Беларусь';
+    $desc = 'Острые соусы ручной работы RAGE FILL. Собственные перцы, от лёгкой до экстремальной остроты, натуральные ингредиенты. Каталог, доставка по Беларуси.';
     $url = $baseUrl . '/';
 
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
@@ -944,6 +1069,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $faqJsonLd = '<script type="application/ld+json">'
         . json_encode($faqLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
         . '</script>';
+    $orgJsonLd = $seo->organizationJsonLd();
+    $websiteJsonLd = $seo->websiteJsonLd();
 
     // Featured products (is_hit=1, limit 4)
     $allSauces = $db->getAllSauces(true);
@@ -1057,17 +1184,19 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
         <title>{$title}</title>
         {$metaTags}
-        <link rel="canonical" href="{$url}">
         <link rel="alternate" hreflang="ru-BY" href="{$url}">
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <meta name="theme-color" content="#1C1410">
         <link rel="stylesheet" href="/css/style.css?v=4.1.0">
-        <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+        <link rel="stylesheet" href="/css/aos.css?v=2.3.4">
         {$faqJsonLd}
+        {$orgJsonLd}
+        {$websiteJsonLd}
     </head>
     <body class="browser-mode home-page">
 
@@ -1102,8 +1231,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                 <h1 class="home-hero__title" data-aos="fade-up">
                     <span class="home-hero__title-rage">RAGE</span> <span class="home-hero__title-fill">FILL</span>
                 </h1>
-                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Авторские острые соусы ручной работы</p>
-                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Выращиваем перцы сами, готовим по собственным рецептам. Натуральные ингредиенты, яркий вкус и острота от лёгкой до экстремальной.</p>
+                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Острые соусы, подарочные наборы, специи и маринованные перцы ручной работы</p>
+                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Яркий вкус, натуральные ингредиенты и острота под любой вкус — от лёгкой до экстремальной. Идеальный выбор для мяса, пиццы, бургеров и закусок. Доставка по Минску и Беларуси.</p>
                 <div class="home-hero__buttons" data-aos="fade-up" data-aos-delay="300">
                     <a href="/catalog" class="home-hero__btn home-hero__btn--primary">Смотреть каталог</a>
                     <a href="https://t.me/{$contactTg}" class="home-hero__btn home-hero__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
@@ -1194,14 +1323,15 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                 </div>
                 <div class="home-footer__bottom">
                     <span>&copy; {$year} RAGEFILL. Все права защищены.</span>
+                    <a href="/privacy" class="site-footer__privacy-link">Политика конфиденциальности</a>
                 </div>
             </div>
         </footer>
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=2.0.0" data-cfasync="false"></script>
+        <script src="/js/lightbox.js?v=3.0.0" data-cfasync="false"></script>
         <script src="/js/slider.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+        <script src="/js/aos.js?v=2.3.4" data-cfasync="false"></script>
         <script>
             AOS.init({ duration: 700, once: true, offset: 50 });
 
@@ -1280,7 +1410,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
 
     // SEO meta
     $title = 'О нас — RAGE FILL | Острые соусы ручной работы (Минск, Беларусь)';
-    $desc = 'Авторские острые соусы ручной работы RAGE FILL. Натуральные ингредиенты, собственные перцы, доставка по Минску и Беларуси. Отзывы, преимущества, FAQ.';
+    $desc = 'Авторские острые соусы ручной работы RAGE FILL. От лёгкой до экстремальной остроты, из собственных перцев и натуральных ингредиентов. Доставка по Минску и Беларуси. Каталог, отзывы, преимущества.';
     $url = rtrim($config['base_url'], '/') . '/about';
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
 
@@ -1450,7 +1580,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
         {$footer}
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=2.0.0" data-cfasync="false"></script>
+        <script src="/js/lightbox.js?v=3.0.0" data-cfasync="false"></script>
         <script>
             (function() {
                 const saved = localStorage.getItem('ragefill-theme');

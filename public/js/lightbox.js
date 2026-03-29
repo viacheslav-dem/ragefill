@@ -1,13 +1,15 @@
 // ============================================
-// RAGEFILL Lightbox v2.0 — Carousel with bottom thumbnails
-// Center: large image + arrow nav. Bottom: scrollable thumbnail strip.
+// RAGEFILL Lightbox v3.0 — Stories-style carousel
+// Center: large image flanked by prev/next previews.
+// Bottom: scrollable thumbnail strip (tablet/desktop).
 // Usage: Lightbox.open({ images: [...], startIndex: 0 })
 // ============================================
 
 var Lightbox = (function() {
     'use strict';
 
-    var el, mainImg, counter, closeBtn, prevBtn, nextBtn, thumbStrip;
+    var el, mainImg, prevImg, nextImg, prevSlide, nextSlide, mainSlide;
+    var counter, closeBtn, prevBtn, nextBtn, thumbStrip, carousel;
     var images = [];
     var idx = 0;
     var single = false;
@@ -27,12 +29,18 @@ var Lightbox = (function() {
 
         el.innerHTML =
             '<button class="lightbox__close" aria-label="Закрыть">&times;</button>' +
-            '<div class="lightbox__stage">' +
+            '<div class="lightbox__carousel">' +
                 '<button class="lightbox__nav lightbox__nav--prev" aria-label="Предыдущее фото">' +
                     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>' +
                 '</button>' +
-                '<div class="lightbox__main">' +
-                    '<img class="lightbox__img" src="" alt="" draggable="false">' +
+                '<div class="lightbox__slide lightbox__slide--prev" aria-hidden="true" tabindex="-1">' +
+                    '<img src="" alt="" draggable="false">' +
+                '</div>' +
+                '<div class="lightbox__slide lightbox__slide--main">' +
+                    '<img src="" alt="" draggable="false">' +
+                '</div>' +
+                '<div class="lightbox__slide lightbox__slide--next" aria-hidden="true" tabindex="-1">' +
+                    '<img src="" alt="" draggable="false">' +
                 '</div>' +
                 '<button class="lightbox__nav lightbox__nav--next" aria-label="Следующее фото">' +
                     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>' +
@@ -46,7 +54,13 @@ var Lightbox = (function() {
         document.body.appendChild(el);
 
         closeBtn = el.querySelector('.lightbox__close');
-        mainImg = el.querySelector('.lightbox__img');
+        carousel = el.querySelector('.lightbox__carousel');
+        prevSlide = el.querySelector('.lightbox__slide--prev');
+        mainSlide = el.querySelector('.lightbox__slide--main');
+        nextSlide = el.querySelector('.lightbox__slide--next');
+        prevImg = prevSlide.querySelector('img');
+        mainImg = mainSlide.querySelector('img');
+        nextImg = nextSlide.querySelector('img');
         prevBtn = el.querySelector('.lightbox__nav--prev');
         nextBtn = el.querySelector('.lightbox__nav--next');
         thumbStrip = el.querySelector('.lightbox__thumbs');
@@ -60,13 +74,18 @@ var Lightbox = (function() {
         prevBtn.addEventListener('click', function() { navigate(-1); });
         nextBtn.addEventListener('click', function() { navigate(1); });
 
+        // Click on side previews to navigate
+        prevSlide.addEventListener('click', function() { navigate(-1); });
+        nextSlide.addEventListener('click', function() { navigate(1); });
+
         thumbStrip.addEventListener('click', function(e) {
             var thumb = e.target.closest('.lightbox__thumb');
             if (!thumb) return;
             var newIdx = parseInt(thumb.dataset.index, 10);
             if (newIdx === idx || isNaN(newIdx)) return;
+            var dir = newIdx > idx ? 1 : -1;
             idx = newIdx;
-            showWithTransition();
+            showWithTransition(dir);
             if (onNavigate) onNavigate(idx);
         });
 
@@ -77,15 +96,34 @@ var Lightbox = (function() {
             if (e.key === 'ArrowRight') navigate(1);
         });
 
-        var touchX = 0, touchY = 0;
-        el.querySelector('.lightbox__main').addEventListener('touchstart', function(e) {
-            touchX = e.touches[0].clientX;
-            touchY = e.touches[0].clientY;
+        // Touch swipe with drag feedback
+        var touchStartX = 0, touchStartY = 0, touchCurrentX = 0, dragging = false;
+        mainSlide.addEventListener('touchstart', function(e) {
+            dragging = true;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchCurrentX = touchStartX;
+            mainSlide.style.transition = 'none';
         }, { passive: true });
-        el.querySelector('.lightbox__main').addEventListener('touchend', function(e) {
-            var dx = e.changedTouches[0].clientX - touchX;
-            var dy = e.changedTouches[0].clientY - touchY;
-            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+
+        mainSlide.addEventListener('touchmove', function(e) {
+            if (!dragging || single) return;
+            touchCurrentX = e.touches[0].clientX;
+            var dx = touchCurrentX - touchStartX;
+            var dy = e.touches[0].clientY - touchStartY;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                var clamped = Math.max(-80, Math.min(80, dx));
+                mainSlide.style.transform = 'translate3d(' + clamped + 'px, 0, 0)';
+            }
+        }, { passive: true });
+
+        mainSlide.addEventListener('touchend', function() {
+            if (!dragging) return;
+            dragging = false;
+            mainSlide.style.transition = '';
+            mainSlide.style.transform = '';
+            var dx = touchCurrentX - touchStartX;
+            if (Math.abs(dx) > 50) {
                 navigate(dx > 0 ? -1 : 1);
             }
         }, { passive: true });
@@ -112,16 +150,22 @@ var Lightbox = (function() {
     function navigate(dir) {
         if (single) return;
         idx = (idx + dir + images.length) % images.length;
-        showWithTransition();
+        showWithTransition(dir);
         if (onNavigate) onNavigate(idx);
     }
 
-    function showWithTransition() {
-        mainImg.style.opacity = '0';
+    function showWithTransition(dir) {
+        // Brief scale-down + directional shift, then swap
+        mainSlide.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+        mainSlide.style.opacity = '0.5';
+        mainSlide.style.transform = 'scale(0.92) translate3d(' + (dir * -6) + 'vw, 0, 0)';
+
         setTimeout(function() {
             render();
-            mainImg.style.opacity = '1';
-        }, 100);
+            mainSlide.style.opacity = '';
+            mainSlide.style.transform = '';
+            mainSlide.style.transition = '';
+        }, 180);
     }
 
     function buildThumbnails() {
@@ -139,10 +183,29 @@ var Lightbox = (function() {
     function render() {
         mainImg.src = images[idx];
 
+        // Side previews
+        if (!single && images.length > 1) {
+            var prevIdx = (idx - 1 + images.length) % images.length;
+            var nextIdx = (idx + 1) % images.length;
+            prevImg.src = images[prevIdx];
+            nextImg.src = images[nextIdx];
+            prevSlide.style.visibility = '';
+            nextSlide.style.visibility = '';
+        } else {
+            prevSlide.style.visibility = 'hidden';
+            nextSlide.style.visibility = 'hidden';
+        }
+
         prevBtn.style.display = single ? 'none' : '';
         nextBtn.style.display = single ? 'none' : '';
         counter.style.display = single ? 'none' : '';
         el.querySelector('.lightbox__thumbs-wrap').style.display = single ? 'none' : '';
+
+        // Mobile edge gradient hints
+        if (carousel) {
+            carousel.classList.toggle('has-prev', !single && images.length > 1);
+            carousel.classList.toggle('has-next', !single && images.length > 1);
+        }
 
         if (!single) {
             counter.textContent = (idx + 1) + ' / ' + images.length;
@@ -150,6 +213,7 @@ var Lightbox = (function() {
                 thumb.classList.toggle('active', i === idx);
             });
             scrollThumbIntoView();
+            preloadAdjacent();
         }
     }
 
@@ -157,6 +221,14 @@ var Lightbox = (function() {
         var activeThumb = thumbStrip.querySelector('.lightbox__thumb.active');
         if (!activeThumb) return;
         activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    function preloadAdjacent() {
+        if (images.length <= 2) return;
+        var next2 = (idx + 2) % images.length;
+        var prev2 = (idx - 2 + images.length) % images.length;
+        var img1 = new Image(); img1.src = images[next2];
+        var img2 = new Image(); img2.src = images[prev2];
     }
 
     return { open: open, close: close };
