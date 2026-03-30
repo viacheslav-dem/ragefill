@@ -9,9 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
     <meta name="theme-color" content="#1C1410">
     <link rel="stylesheet" href="/css/style.css?v=4.1.0">
     <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
@@ -117,10 +115,6 @@
 </search>
 
 <!-- Catalog intro (visible to crawlers, hidden when JS filters active) -->
-<div class="catalog-intro browser-only-link" id="catalog-intro">
-    <p>Каталог RAGEFILL — острые соусы, подарочные наборы, маринованные перцы, острый арахис и специи ручной работы. Все продукты изготавливаются из собственных перцев: Carolina Reaper, Habanero, Bhut Jolokia и других сортов. Пять уровней остроты — от лёгкой до экстремальной. Доставка по Минску и Беларуси.</p>
-</div>
-
 <!-- Catalog layout wrapper (sidebar + grid on desktop) -->
 <div class="catalog-layout">
 
@@ -215,8 +209,11 @@
 
     <!-- Product grid -->
     <section class="catalog-section" aria-label="Товары">
+        <div class="catalog-intro browser-only-link" id="catalog-intro">
+            <h1 class="catalog-intro__title" id="catalog-heading">Каталог соусов и жгучих закусок RAGE FILL</h1>
+            <p>Острые соусы ручной работы, маринованные перцы, сверхострые специи, подарочные наборы и острый арахис.<br>Готовим из собственных перцев и натуральных ингредиентов. Острота под любой вкус — от лёгкой до экстремальной.<br>Идеальный выбор для мяса, пиццы, бургеров и закусок. Доставка по Минску и Беларуси.</p>
+        </div>
         <div class="catalog-section__topbar">
-            <h2 class="visually-hidden" id="catalog-heading">Каталог RAGEFILL</h2>
             <div class="catalog-section__results" id="desktop-results-count" aria-live="polite" aria-atomic="true"></div>
         </div>
         <div id="catalog" class="catalog" role="list" aria-labelledby="catalog-heading">{{SSR_PRODUCTS}}</div>

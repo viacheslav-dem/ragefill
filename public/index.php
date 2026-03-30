@@ -678,9 +678,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
         <meta name="theme-color" content="#1C1410">
         <link rel="stylesheet" href="/css/style.css?v=4.1.0">
         <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
@@ -896,9 +894,7 @@ function renderProductNotFound(): string
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
         <meta name="theme-color" content="#1C1410">
         <link rel="stylesheet" href="/css/style.css?v=4.1.0">
         <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
@@ -919,7 +915,7 @@ function renderProductNotFound(): string
         </header>
         <main>
             <div class="empty-state" style="padding-top: 80px;">
-                <div class="empty-state__icon">🌶️</div>
+                <div class="empty-state__icon"><img src="/uploads/pepper.svg" alt="" width="48" height="48"></div>
                 <div class="empty-state__text">Товар не найден</div>
                 <div class="empty-state__hint">Возможно, он был удалён или скрыт</div>
                 <a href="/catalog" class="empty-state__btn">Вернуться в каталог</a>
@@ -971,9 +967,7 @@ function renderPrivacyPage(array $config, SeoHelper $seo): string
         <title>{$title}</title>
         {$metaTags}
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
         <meta name="theme-color" content="#1C1410">
         <link rel="stylesheet" href="/css/style.css?v=4.1.0">
     </head>
@@ -1138,8 +1132,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             : '<div class="home-product__img-placeholder"></div>';
 
         $peppers = '';
-        for ($i = 0; $i < $heat; $i++) $peppers .= '<span class="pepper active">🌶️</span>';
-        for ($i = $heat; $i < 5; $i++) $peppers .= '<span class="pepper dim">🌶️</span>';
+        for ($i = 0; $i < $heat; $i++) $peppers .= '<span class="pepper active"><img src="/uploads/pepper.svg" alt="" width="16" height="16"></span>';
+        for ($i = $heat; $i < 5; $i++) $peppers .= '<span class="pepper dim"><img src="/uploads/pepper.svg" alt="" width="16" height="16"></span>';
 
         $featuredHtml .= <<<HTML
             <a href="/sauce/{$slug}" class="home-product" data-aos="fade-up" data-aos-delay="{delay}">
@@ -1160,7 +1154,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
     // Benefits
     $benefits = [
-        ['icon' => '🌶', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
+        ['icon' => '<img src="/uploads/pepper.svg" alt="" width="36" height="36">', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
         ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
         ['icon' => '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10.5" width="18" height="10" rx="1.2" fill="#E8590C" stroke="#C7470A" stroke-width="0.8"/><rect x="2.5" y="7.5" width="19" height="3.5" rx="1" fill="#DC2626" stroke="#B91C1C" stroke-width="0.8"/><rect x="10.75" y="7.5" width="2.5" height="13" fill="#F59E0B"/><rect x="2.5" y="8.75" width="19" height="1.5" fill="#F59E0B"/><path d="M12 7.5C12 7.5 10 4 8.5 4C7 4 6 5 6.5 6.25C7 7.5 9 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/><path d="M12 7.5C12 7.5 14 4 15.5 4C17 4 18 5 17.5 6.25C17 7.5 15 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/></svg>', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
         ['icon' => '🔥', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
@@ -1236,9 +1230,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
         <meta name="theme-color" content="#1C1410">
         <link rel="stylesheet" href="/css/style.css?v=4.1.0">
         <link rel="stylesheet" href="/css/aos.css?v=2.3.4">
@@ -1484,7 +1476,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
 
     // Benefits
     $benefits = [
-        ['icon' => '🌶', 'title' => 'Собственные перцы', 'text' => 'Мы сами выращиваем острые перцы: Carolina Reaper, Apocalypse Scorpion, Big Red Mama, 7 POT, Bhut Jolokia, Habanero, The Pain, Jalapeño и другие.'],
+        ['icon' => '<img src="/uploads/pepper.svg" alt="" width="36" height="36">', 'title' => 'Собственные перцы', 'text' => 'Мы сами выращиваем острые перцы: Carolina Reaper, Apocalypse Scorpion, Big Red Mama, 7 POT, Bhut Jolokia, Habanero, The Pain, Jalapeño и другие.'],
         ['icon' => '🌿', 'title' => 'Натуральный состав', 'text' => 'Готовим соусы из натуральных ингредиентов по собственным авторским рецептам. Без консервантов и красителей.'],
         ['icon' => '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10.5" width="18" height="10" rx="1.2" fill="#E8590C" stroke="#C7470A" stroke-width="0.8"/><rect x="2.5" y="7.5" width="19" height="3.5" rx="1" fill="#DC2626" stroke="#B91C1C" stroke-width="0.8"/><rect x="10.75" y="7.5" width="2.5" height="13" fill="#F59E0B"/><rect x="2.5" y="8.75" width="19" height="1.5" fill="#F59E0B"/><path d="M12 7.5C12 7.5 10 4 8.5 4C7 4 6 5 6.5 6.25C7 7.5 9 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/><path d="M12 7.5C12 7.5 14 4 15.5 4C17 4 18 5 17.5 6.25C17 7.5 15 7.5 12 7.5Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.6"/></svg>', 'title' => 'Идея для подарка', 'text' => 'Отличный вариант для любого праздника — будь то День рождения, 23 февраля, 8 марта, юбилей или просто особый повод.'],
         ['icon' => '🔥', 'title' => 'Широкий выбор', 'text' => 'От лёгкой остроты до экстремальной. Яркий вкус для мяса, пиццы, бургеров и закусок.'],
@@ -1559,9 +1551,7 @@ function renderAboutPage(array $config, SeoHelper $seo): string
         {$metaTags}
         <link rel="alternate" hreflang="ru-BY" href="{$url}">
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
         <meta name="theme-color" content="#1C1410">
         <link rel="stylesheet" href="/css/style.css?v=4.1.0">
         {$faqJsonLd}

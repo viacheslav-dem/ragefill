@@ -397,10 +397,10 @@ class SeoHelper
     {
         $out = '';
         for ($i = 0; $i < $active; $i++) {
-            $out .= '<span class="pepper active">🌶️</span>';
+            $out .= '<span class="pepper active"><img src="/uploads/pepper.svg" alt="" width="16" height="16"></span>';
         }
         for ($i = $active; $i < $total; $i++) {
-            $out .= '<span class="pepper dim">🌶️</span>';
+            $out .= '<span class="pepper dim"><img src="/uploads/pepper.svg" alt="" width="16" height="16"></span>';
         }
         return $out;
     }

@@ -39,7 +39,7 @@
     --radius-sm: 6px;
     --radius-xs: 4px;
     --radius-pill: 50px;
-    --font-display: 'Bebas Neue', sans-serif;
+    --font-display: 'Oswald', sans-serif;
     --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
     --safe-bottom: 0px;
     --header-h: 70px;
@@ -158,8 +158,7 @@ body.modal-open { overflow: hidden; }
 
 .header__logo::before,
 .header__logo::after {
-    content: '🌶️';
-    font-size: 20px;
+    display: none;
 }
 
 .header__logo-rage {
@@ -586,8 +585,11 @@ search.toolbar {
 }
 
 .sauce-card__image-placeholder::before {
-    content: '🌶️';
-    font-size: 40px;
+    content: '';
+    display: block;
+    width: 40px;
+    height: 40px;
+    background: url('/uploads/pepper.svg') center / contain no-repeat;
     opacity: 0.3;
 }
 
@@ -686,7 +688,8 @@ search.toolbar {
 
 
 /* Pepper heat display */
-.pepper { display: inline-block; }
+.pepper { display: inline-block; width: 16px; height: 16px; }
+.pepper img { width: 100%; height: 100%; display: block; }
 .pepper.dim { opacity: 0.2; filter: grayscale(80%); }
 
 .sauce-card__peppers {
@@ -1799,11 +1802,23 @@ body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
 .catalog-section__topbar { display: none; }
 .catalog-intro {
     max-width: 720px;
-    margin: 0 auto 16px;
+    margin: 0 auto 20px;
     padding: 0 16px;
+}
+.catalog-intro__title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+    line-height: 1.2;
+}
+.catalog-intro p {
     font-size: 14px;
-    line-height: 1.6;
-    color: var(--text-muted);
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin: 0;
 }
 .catalog-layout { display: block; }
 .modal__layout { display: block; }
@@ -1970,6 +1985,7 @@ body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
 
     .header { padding: 20px 32px 14px; }
     .header__logo { font-size: 48px; letter-spacing: 10px; }
+    .catalog-intro__title { font-size: 32px; }
     .toolbar { padding: 14px 32px 0; top: 0; }
     .toolbar__row { max-width: 600px; }
     .toolbar__dropdown { max-width: 600px; }
@@ -2043,6 +2059,9 @@ body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
     .catalog-sidebar { display: block; }
+    .catalog-intro { max-width: none; margin-bottom: 12px; padding: 0; }
+    .catalog-intro__title { font-size: 32px; letter-spacing: 2px; }
+    .catalog-intro p { font-size: 14px; }
     .catalog-section__topbar {
         display: flex;
         align-items: center;
@@ -2350,7 +2369,11 @@ button, a, .sauce-card, .toolbar__chip,
     font-size: 64px;
 }
 .product-page__image-placeholder::before {
-    content: '🌶️';
+    content: '';
+    display: block;
+    width: 64px;
+    height: 64px;
+    background: url('/uploads/pepper.svg') center / contain no-repeat;
     opacity: 0.3;
 }
 
@@ -2987,8 +3010,11 @@ a.sauce-card {
 
 .site-footer__logo::before,
 .site-footer__logo::after {
-    content: '🌶️';
-    font-size: 14px;
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: url('/uploads/pepper.svg') center / contain no-repeat;
 }
 
 .site-footer__logo-rage {
@@ -4060,7 +4086,7 @@ body.tg-dark .hero-liquid::after { opacity: 0.85; }
     align-items: center;
     justify-content: center;
 }
-.home-product__img-placeholder::before { content: '🌶️'; font-size: 40px; opacity: 0.3; }
+.home-product__img-placeholder::before { content: ''; display: block; width: 40px; height: 40px; background: url('/uploads/pepper.svg') center / contain no-repeat; opacity: 0.3; }
 .home-product__info {
     padding: 16px;
     display: flex;

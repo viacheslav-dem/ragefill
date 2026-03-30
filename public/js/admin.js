@@ -225,7 +225,7 @@ function renderSauceList(filter = '') {
     if (list.length === 0) {
         sauceList.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state__icon">${filter ? '🔍' : '🌶️'}</div>
+                <div class="empty-state__icon">${filter ? '🔍' : '<img src="/uploads/pepper.svg" alt="" width="48" height="48">'}</div>
                 <div class="empty-state__text">${filter ? 'Ничего не найдено' : 'Соусы ещё не добавлены'}</div>
             </div>
         `;
@@ -235,7 +235,7 @@ function renderSauceList(filter = '') {
     sauceList.innerHTML = list.map(sauce => {
         const thumb = sauce.image
             ? `<img class="admin-sauce-thumb" src="/uploads/${escapeHtml(sauce.image)}" alt="${escapeHtml(sauce.name)}" loading="lazy" data-fallback="true">`
-            : '<div class="admin-sauce-thumb-placeholder">🌶️</div>';
+            : '<div class="admin-sauce-thumb-placeholder"><img src="/uploads/pepper.svg" alt="" width="32" height="32"></div>';
 
         const statusText = sauce.is_active ? 'Активен' : 'Скрыт';
         const inStockText = isInStock(sauce) ? '' : ' · Нет в наличии';
@@ -276,7 +276,7 @@ function renderSauceList(filter = '') {
         img.addEventListener('error', function () {
             const placeholder = document.createElement('div');
             placeholder.className = 'admin-sauce-thumb-placeholder';
-            placeholder.textContent = '🌶️';
+            placeholder.innerHTML = '<img src="/uploads/pepper.svg" alt="" width="32" height="32">';
             this.replaceWith(placeholder);
         });
     });
