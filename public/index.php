@@ -1242,7 +1242,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
         <header class="header header--home">
             <div class="header__inner">
-                <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
+                <a href="/" class="header__logo-link" aria-label="На главную"><div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div></a>
                 <nav class="header__nav" id="main-nav">
                     <a href="/catalog" class="header__nav-link">Каталог</a>
                     <a href="#benefits" class="header__nav-link">О нас</a>

@@ -154,18 +154,50 @@ var Lightbox = (function() {
         if (onNavigate) onNavigate(idx);
     }
 
+    function isMobile() {
+        return window.innerWidth < 768;
+    }
+
     function showWithTransition(dir) {
-        // Brief scale-down + directional shift, then swap
-        mainSlide.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
-        mainSlide.style.opacity = '0.5';
-        mainSlide.style.transform = 'scale(0.92) translate3d(' + (dir * -6) + 'vw, 0, 0)';
+        if (isMobile()) {
+            // Mobile: brief scale-down + shift (original animation)
+            mainSlide.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+            mainSlide.style.opacity = '0.5';
+            mainSlide.style.transform = 'scale(0.92) translate3d(' + (dir * -6) + 'vw, 0, 0)';
+
+            setTimeout(function() {
+                render();
+                mainSlide.style.opacity = '';
+                mainSlide.style.transform = '';
+                mainSlide.style.transition = '';
+            }, 180);
+            return;
+        }
+
+        // Desktop: slide old image out, then slide new image in
+        var duration = 200;
+        mainSlide.style.transition = 'transform ' + duration + 'ms ease-in, opacity ' + duration + 'ms ease-in';
+        mainSlide.style.opacity = '0';
+        mainSlide.style.transform = 'translate3d(' + (dir * -30) + 'vw, 0, 0)';
 
         setTimeout(function() {
             render();
-            mainSlide.style.opacity = '';
+            // Position new image on the opposite side (off-screen)
+            mainSlide.style.transition = 'none';
+            mainSlide.style.transform = 'translate3d(' + (dir * 30) + 'vw, 0, 0)';
+            mainSlide.style.opacity = '0';
+
+            // Force reflow so the position applies before animating in
+            mainSlide.offsetHeight;
+
+            mainSlide.style.transition = 'transform ' + duration + 'ms ease-out, opacity ' + duration + 'ms ease-out';
             mainSlide.style.transform = '';
-            mainSlide.style.transition = '';
-        }, 180);
+            mainSlide.style.opacity = '';
+
+            setTimeout(function() {
+                mainSlide.style.transition = '';
+            }, duration);
+        }, duration);
     }
 
     function buildThumbnails() {

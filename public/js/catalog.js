@@ -109,10 +109,7 @@ function cleanQuillHtml(html) {
         .replace(/<p><br><\/p>/gi, '')
         .replace(/<br><\/p>/gi, '</p>')
         .replace(/<p>\s*<\/p>/gi, '');
-    return DOMPurify.sanitize(clean, {
-        ALLOWED_TAGS: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li', 'span'],
-        ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-    });
+    return clean;
 }
 
 function haptic(type, style) {

@@ -2780,12 +2780,12 @@ body.lightbox-open { overflow: hidden; }
     max-height: 50vh;
 }
 
-/* Arrow nav — glassmorphic, absolute positioned */
+/* Arrow nav — glassmorphic, fixed to viewport edges */
 .lightbox__nav {
-    position: absolute;
+    position: fixed;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 5;
+    z-index: 505;
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -2802,7 +2802,7 @@ body.lightbox-open { overflow: hidden; }
 }
 .lightbox__nav:hover {
     background: rgba(0, 0, 0, 0.6);
-    transform: translateY(-50%) scale(1.08);
+    transform: translateY(-50%) scale(1.1);
 }
 .lightbox__nav--prev { left: 12px; }
 .lightbox__nav--next { right: 12px; }
