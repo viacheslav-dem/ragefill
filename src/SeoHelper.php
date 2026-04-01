@@ -248,6 +248,7 @@ class SeoHelper
         $inStock = ($sauce['in_stock'] ?? 1) != 0;
         $isHit = ($sauce['is_hit'] ?? 0) == 1;
         $isLowStock = ($sauce['is_low_stock'] ?? 0) == 1;
+        $isNew = ($sauce['is_new'] ?? 0) == 1;
         $id = (int)$sauce['id'];
 
         $img = !empty($sauce['image'])
@@ -258,6 +259,7 @@ class SeoHelper
         $stockBadge = $inStock ? '' : '<span class="sauce-card__stock-badge sauce-card__stock-badge--out">Нет в наличии</span>';
         $hitBadge = $isHit ? '<span class="sauce-card__badge sauce-card__badge--hit">ХИТ</span>' : '';
         $lowStockBadge = $isLowStock ? '<span class="sauce-card__badge sauce-card__badge--low">МАЛО</span>' : '';
+        $newBadge = $isNew ? '<span class="sauce-card__badge sauce-card__badge--new">НОВИНКА</span>' : '';
 
         $tier = $this->getHeatTier($heat);
         $peppers = $this->renderPeppers($heat);
@@ -271,6 +273,7 @@ class SeoHelper
                 {$img}
                 {$stockBadge}
                 {$hitBadge}
+                {$newBadge}
                 {$lowStockBadge}
             </div>
             <div class="sauce-card__content">

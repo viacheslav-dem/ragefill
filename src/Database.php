@@ -54,6 +54,9 @@ class Database
             if (!in_array('is_low_stock', $colNames, true)) {
                 $this->pdo->exec("ALTER TABLE sauces ADD COLUMN is_low_stock INTEGER NOT NULL DEFAULT 0 CHECK(is_low_stock IN (0, 1))");
             }
+            if (!in_array('is_new', $colNames, true)) {
+                $this->pdo->exec("ALTER TABLE sauces ADD COLUMN is_new INTEGER NOT NULL DEFAULT 0 CHECK(is_new IN (0, 1))");
+            }
             if (!in_array('images', $colNames, true)) {
                 $this->pdo->exec("ALTER TABLE sauces ADD COLUMN images TEXT NOT NULL DEFAULT '[]'");
             }
@@ -85,6 +88,7 @@ class Database
                 category TEXT NOT NULL DEFAULT 'sauce',
                 is_hit INTEGER NOT NULL DEFAULT 0 CHECK(is_hit IN (0, 1)),
                 is_low_stock INTEGER NOT NULL DEFAULT 0 CHECK(is_low_stock IN (0, 1)),
+                is_new INTEGER NOT NULL DEFAULT 0 CHECK(is_new IN (0, 1)),
                 images TEXT NOT NULL DEFAULT '[]',
                 slug TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -154,6 +158,7 @@ class Database
             'category' => self::validateCategory($data['category'] ?? 'sauce'),
             'is_hit' => in_array($data['is_hit'] ?? 0, [1, '1'], true) ? 1 : 0,
             'is_low_stock' => in_array($data['is_low_stock'] ?? 0, [1, '1'], true) ? 1 : 0,
+            'is_new' => in_array($data['is_new'] ?? 0, [1, '1'], true) ? 1 : 0,
             'slug' => $slug,
         ]);
 
@@ -187,6 +192,7 @@ class Database
             'category' => fn($v) => self::validateCategory($v),
             'is_hit' => fn($v) => in_array($v, [1, '1'], true) ? 1 : 0,
             'is_low_stock' => fn($v) => in_array($v, [1, '1'], true) ? 1 : 0,
+            'is_new' => fn($v) => in_array($v, [1, '1'], true) ? 1 : 0,
         ];
 
         foreach ($sanitizers as $field => $sanitize) {

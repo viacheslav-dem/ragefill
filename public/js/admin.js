@@ -355,6 +355,7 @@ function openForm(sauce = null) {
 
     // Badge toggles
     document.getElementById('form-is-hit').checked = sauce ? !!sauce.is_hit : false;
+    document.getElementById('form-is-new').checked = sauce ? !!sauce.is_new : false;
     document.getElementById('form-is-low-stock').checked = sauce ? !!sauce.is_low_stock : false;
 
     // Show/hide delete button in edit mode
@@ -541,6 +542,7 @@ sauceForm.addEventListener('submit', async (e) => {
     formData.append('is_active', activeToggle.checked ? '1' : '0');
     formData.append('in_stock', document.getElementById('form-in-stock').checked ? '1' : '0');
     formData.append('is_hit', document.getElementById('form-is-hit').checked ? '1' : '0');
+    formData.append('is_new', document.getElementById('form-is-new').checked ? '1' : '0');
     formData.append('is_low_stock', document.getElementById('form-is-low-stock').checked ? '1' : '0');
     formData.append('remove_image', removeImage ? '1' : '0');
 

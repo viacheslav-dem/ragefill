@@ -261,7 +261,9 @@ function renderCard(sauce, index) {
 
     const isHit = isTruthy(sauce.is_hit);
     const isLowStock = isTruthy(sauce.is_low_stock);
+    const isNew = isTruthy(sauce.is_new);
     const hitBadge = isHit ? '<span class="sauce-card__badge sauce-card__badge--hit">ХИТ</span>' : '';
+    const newBadge = isNew ? '<span class="sauce-card__badge sauce-card__badge--new">НОВИНКА</span>' : '';
     const lowStockBadge = isLowStock ? '<span class="sauce-card__badge sauce-card__badge--low">МАЛО</span>' : '';
 
     return `
@@ -270,6 +272,7 @@ function renderCard(sauce, index) {
                 ${img}
                 ${stockBadge}
                 ${hitBadge}
+                ${newBadge}
                 ${lowStockBadge}
             </div>
             <div class="sauce-card__content">
