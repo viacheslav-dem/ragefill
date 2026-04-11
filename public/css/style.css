@@ -2111,8 +2111,7 @@ body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
         display: flex;
         align-items: center;
         position: relative;
-        flex: 1;
-        max-width: 480px;
+        flex: 0 1 320px;
     }
     .header__search-icon {
         position: absolute;
@@ -2579,7 +2578,7 @@ button, a, .sauce-card, .toolbar__chip,
     background: var(--bg-card);
     color: var(--text-primary);
     cursor: pointer;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     transition: background 0.2s, border-color 0.2s;
@@ -2608,6 +2607,7 @@ button, a, .sauce-card, .toolbar__chip,
 @media (min-width: 768px) and (max-width: 1023px) {
     .product-page__related { max-width: 780px; padding: 0 32px 48px; }
     .product-page__related-grid > * { flex: 0 0 calc(50% - 8px); }
+    .related-arrow { display: flex; }
     .product-page {
         max-width: 780px;
         padding: 0 var(--content-padding) 48px;

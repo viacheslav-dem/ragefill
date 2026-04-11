@@ -976,8 +976,8 @@ function renderProductNotFound(): string
 function renderPrivacyPage(array $config, SeoHelper $seo): string
 {
     $baseUrl = rtrim($config['base_url'], '/');
-    $title = 'Политика конфиденциальности — RAGEFILL';
-    $desc = 'Политика конфиденциальности интернет-магазина острых соусов RAGEFILL.';
+    $title = 'Политика конфиденциальности — RAGE FILL';
+    $desc = 'Политика конфиденциальности интернет-магазина острых соусов RAGE FILL.';
     $url = $baseUrl . '/privacy';
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
     $footer = renderFooter($config);
@@ -1160,8 +1160,9 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         for ($i = 0; $i < $heat; $i++) $peppers .= '<span class="pepper active"><img src="/uploads/pepper.svg" alt="" width="16" height="16"></span>';
         for ($i = $heat; $i < 5; $i++) $peppers .= '<span class="pepper dim"><img src="/uploads/pepper.svg" alt="" width="16" height="16"></span>';
 
+        $id = (int)$s['id'];
         $featuredHtml .= <<<HTML
-            <a href="/sauce/{$slug}" class="home-product" data-aos="fade-up" data-aos-delay="{delay}">
+            <a href="/sauce/{$slug}" class="home-product" data-id="{$id}" data-aos="fade-up" data-aos-delay="{delay}">
                 <div class="home-product__image-wrap">{$img}</div>
                 <div class="home-product__info">
                     <h3 class="home-product__name">{$name}</h3>
@@ -1177,13 +1178,15 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         return (string)($i++ * 100);
     }, $featuredHtml);
 
+    $featuredJson = json_encode(array_values($featured), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+
     // Benefits
     $benefits = [
         ['icon' => '<img src="/uploads/pepper.svg" alt="" width="36" height="36">', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
         ['icon' => '<img src="/uploads/branch.svg" alt="" width="36" height="36">', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
         ['icon' => '<img src="/uploads/gift.svg" alt="" width="36" height="36">', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
         ['icon' => '<img src="/uploads/fire.svg" alt="" width="36" height="36">', 'title' => 'Только честная острота', 'text' => 'Готовим соусы из натуральных сверхострых перцев без добавления экстракта капсаицина!'],
-        ['icon' => '<img src="/uploads/box.svg" alt="" width="36" height="36">', 'title' => 'Доставка по Минску и всей Беларуси (Белпочта, Европочта)', 'text' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту.'],
+        ['icon' => '<img src="/uploads/box.svg" alt="" width="36" height="36">', 'title' => 'Доставка по Беларуси', 'text' => ' Ускоренная отправка на следующий день после заказа. Белпочта, Европочта.'],
         ['icon' => '<img src="/uploads/pizza.svg" alt="" width="36" height="36">', 'title' => 'Запоминающийся вкус', 'text' => 'Соусы, которые действительно жгут и запоминаются. Яркий вкус для мяса, пиццы, бургеров.'],
     ];
 
@@ -1308,8 +1311,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                     <span class="home-hero__title-rage">RAGE</span><span class="home-hero__title-fill">FILL</span>
                    <!-- <span class="home-hero__title-sub">Острые соусы ручной работы</span> -->
                 </h1>
-                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Острые соусы ручной работы, маринованные перцы, подарочные наборы и жгучие закуски.</p>
-                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Яркий вкус, натуральные ингредиенты и острота под любой вкус.<br>Идеальный выбор для мяса, пиццы, бургеров и закусок. <br> Доставка по Минску и Беларуси.</p>
+                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Острые соусы ручной работы, маринованные перцы, подарочные наборы и жгучие закуски</p>
+                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Идеальный выбор для мяса, пиццы, бургеров и закусок <br> Доставка по Минску и Беларуси</p>
                 <div class="home-hero__buttons" data-aos="fade-up" data-aos-delay="300">
                     <a href="/catalog" class="home-hero__btn home-hero__btn--primary">Смотреть каталог</a>
                     <a href="https://t.me/{$contactTg}" class="home-hero__btn home-hero__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
@@ -1400,88 +1403,48 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
         </main>
 
+        <!-- Product modal (for featured cards on mobile) -->
+        <div id="home-modal-overlay" class="modal-overlay">
+            <div class="modal" id="home-modal" role="dialog" aria-modal="true">
+                <div class="modal__top-bar">
+                    <div class="modal__handle"></div>
+                    <button class="modal__close" id="home-modal-close" aria-label="Закрыть">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="modal__layout">
+                    <div id="home-modal-image" class="modal__image-wrapper"></div>
+                    <div class="modal__content">
+                        <h2 id="home-modal-name" class="modal__name"></h2>
+                        <div id="home-modal-subtitle" class="modal__subtitle"></div>
+                        <div id="home-modal-stock" class="modal__stock-badge modal__stock-badge--in">В наличии</div>
+                        <div id="home-modal-peppers" class="modal__peppers">
+                            <span class="modal__pepper-icons"></span>
+                            <span class="modal__pepper-label"></span>
+                        </div>
+                        <div id="home-modal-description" class="modal__description collapsed"></div>
+                        <button id="home-modal-read-more" class="modal__read-more" style="display:none">Читать далее</button>
+                        <div id="home-modal-composition" class="modal__info-block" style="display:none">
+                            <div class="modal__info-label">Состав</div>
+                            <div id="home-modal-composition-value" class="modal__info-value"></div>
+                        </div>
+                        <div id="home-modal-volume" style="display:none">
+                            <span id="home-modal-volume-value" class="modal__volume-pill"></span>
+                        </div>
+                        <button class="modal__contact-btn" id="home-modal-contact">Написать продавцу</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {$footer}
 
         <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
         <script src="/js/lightbox.js?v=3.0.0" data-cfasync="false"></script>
         <script src="/js/slider.js?v=1.0.0" data-cfasync="false"></script>
         <script src="/js/aos.js?v=2.3.4" data-cfasync="false"></script>
-        <script>
-            AOS.init({ duration: 700, once: true, offset: 50 });
-
-            // Reviews slider + lightbox
-            (function() {
-                var container = document.getElementById('home-reviews');
-                if (!container) return;
-
-                Slider.init({
-                    track: container,
-                    prev: document.getElementById('reviews-prev'),
-                    next: document.getElementById('reviews-next'),
-                    autoPlay: 4000
-                });
-
-                var images = [];
-                try { images = JSON.parse(container.dataset.gallery || '[]'); } catch(e) {}
-                if (!images.length) return;
-                container.addEventListener('click', function(e) {
-                    var btn = e.target.closest('[data-review-index]');
-                    if (!btn) return;
-                    Lightbox.open({ images: images, startIndex: parseInt(btn.dataset.reviewIndex) || 0 });
-                });
-            })();
-
-            // Theme toggle
-            (function() {
-                const saved = localStorage.getItem('ragefill-theme');
-                if (saved === 'dark') document.body.classList.add('tg-dark');
-                const btn = document.getElementById('theme-toggle');
-                if (!btn) return;
-                btn.addEventListener('click', () => {
-                    const isDark = document.body.classList.toggle('tg-dark');
-                    localStorage.setItem('ragefill-theme', isDark ? 'dark' : 'light');
-                });
-            })();
-
-            // Smooth scroll for anchor links
-            document.querySelectorAll('a[href^="#"]').forEach(a => {
-                a.addEventListener('click', e => {
-                    const target = document.querySelector(a.getAttribute('href'));
-                    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
-                });
-            });
-
-            // Burger menu
-            (function(){
-                var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
-                if(!btn||!nav)return;
-                btn.addEventListener('click',function(){
-                    var open=nav.classList.toggle('open');
-                    btn.classList.toggle('open',open);
-                    btn.setAttribute('aria-expanded',String(open));
-                    document.body.classList.toggle('menu-open',open);
-                });
-                nav.querySelectorAll('a').forEach(function(a){
-                    a.addEventListener('click',function(){
-                        nav.classList.remove('open');
-                        btn.classList.remove('open');
-                        btn.setAttribute('aria-expanded','false');
-                        document.body.classList.remove('menu-open');
-                    });
-                });
-            })();
-
-            // Home search → redirect to catalog
-            (function(){
-                var input=document.getElementById('home-search-input');
-                if(!input)return;
-                input.addEventListener('keydown',function(e){
-                    if(e.key==='Enter'&&input.value.trim()){
-                        window.location.href='/catalog?q='+encodeURIComponent(input.value.trim());
-                    }
-                });
-            })();
-        </script>
+        <script>window.__HOME_DATA__={sauces:{$featuredJson},contactTg:'{$contactTg}'};</script>
+        <script src="/js/home.js?v=1.0.0" data-cfasync="false"></script>
     </body>
     </html>
     HTML;
