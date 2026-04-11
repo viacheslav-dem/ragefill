@@ -18,8 +18,8 @@ class SeoHelper
      */
     public function catalogMeta(array $sauces = []): string
     {
-        $title = 'Каталог RAGEFILL — острые соусы, подарочные наборы, специи | Купить в Беларуси';
-        $desc = 'Каталог RAGEFILL: острые соусы, подарочные наборы, маринованные перцы, специи и арахис ручной работы. Carolina Reaper, Habanero и другие. Доставка по Беларуси.';
+        $title = 'Каталог RAGE FILL — острые соусы, подарочные наборы, специи | Купить в Беларуси';
+        $desc = 'Каталог RAGE FILL: острые соусы, подарочные наборы, маринованные перцы, специи и арахис ручной работы. Carolina Reaper, Habanero и другие. Доставка по Беларуси.';
         $url = $this->baseUrl . '/catalog';
 
         // Use first product image as OG fallback
@@ -51,11 +51,11 @@ class SeoHelper
 
         // Category-aware title suffix
         $titleSuffix = match ($category) {
-            'gift_set' => 'подарочный набор RAGEFILL',
-            'pickled_pepper' => 'маринованные перцы RAGEFILL',
-            'spicy_peanut' => 'острый арахис RAGEFILL',
-            'spice' => 'специи RAGEFILL',
-            default => 'острый соус RAGEFILL',
+            'gift_set' => 'подарочный набор RAGE FILL',
+            'pickled_pepper' => 'маринованные перцы RAGE FILL',
+            'spicy_peanut' => 'острый арахис RAGE FILL',
+            'spice' => 'специи RAGE FILL',
+            default => 'острый соус RAGE FILL',
         };
         $title = "{$name} — {$titleSuffix}";
 
@@ -69,7 +69,7 @@ class SeoHelper
                 'spice' => 'Специи',
                 default => 'Острый соус',
             };
-            $desc = "{$categoryLabel} {$name} от RAGEFILL. Острота {$heat}/5. Купить в Беларуси с доставкой.";
+            $desc = "{$categoryLabel} {$name} от RAGE FILL. Острота {$heat}/5. Купить в Беларуси с доставкой.";
         }
 
         $url = $this->baseUrl . '/sauce/' . ($sauce['slug'] ?? $sauce['id']);
@@ -109,7 +109,7 @@ class SeoHelper
             'url' => $url,
             'brand' => [
                 '@type' => 'Brand',
-                'name' => 'RAGEFILL',
+                'name' => 'RAGE FILL',
             ],
             'category' => $category,
             'offers' => [
@@ -165,7 +165,7 @@ class SeoHelper
         $org = [
             '@context' => 'https://schema.org',
             '@type' => 'LocalBusiness',
-            'name' => 'RAGEFILL',
+            'name' => 'RAGE FILL',
             'url' => $this->baseUrl,
             'description' => 'Производитель сверхострых соусов ручной работы в Беларуси',
             'address' => [
@@ -194,7 +194,7 @@ class SeoHelper
         $data = [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
-            'name' => 'RAGEFILL',
+            'name' => 'RAGE FILL',
             'url' => $this->baseUrl,
             'potentialAction' => [
                 '@type' => 'SearchAction',
@@ -226,7 +226,7 @@ class SeoHelper
         $itemList = [
             '@context' => 'https://schema.org',
             '@type' => 'ItemList',
-            'name' => 'Каталог острых соусов RAGEFILL',
+            'name' => 'Каталог острых соусов RAGE FILL',
             'numberOfItems' => count($sauces),
             'itemListElement' => $items,
         ];
@@ -358,7 +358,7 @@ class SeoHelper
         <meta property="og:title" content="{$t}">
         <meta property="og:description" content="{$d}">
         <meta property="og:url" content="{$u}">
-        <meta property="og:site_name" content="RAGEFILL">
+        <meta property="og:site_name" content="RAGE FILL">
         <meta property="og:locale" content="ru_BY">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="{$t}">

@@ -160,17 +160,23 @@ var Lightbox = (function() {
 
     function showWithTransition(dir) {
         if (isMobile()) {
-            // Mobile: brief scale-down + shift (original animation)
-            mainSlide.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
-            mainSlide.style.opacity = '0.5';
-            mainSlide.style.transform = 'scale(0.92) translate3d(' + (dir * -6) + 'vw, 0, 0)';
+            // Mobile: slide out, then slide in from opposite side
+            var dur = 150;
+            mainSlide.style.transition = 'transform ' + dur + 'ms ease-in, opacity ' + dur + 'ms ease-in';
+            mainSlide.style.opacity = '0';
+            mainSlide.style.transform = 'translate3d(' + (dir * -30) + 'vw, 0, 0)';
 
             setTimeout(function() {
                 render();
-                mainSlide.style.opacity = '';
+                mainSlide.style.transition = 'none';
+                mainSlide.style.transform = 'translate3d(' + (dir * 30) + 'vw, 0, 0)';
+                mainSlide.style.opacity = '0';
+                mainSlide.offsetHeight;
+                mainSlide.style.transition = 'transform ' + dur + 'ms ease-out, opacity ' + dur + 'ms ease-out';
                 mainSlide.style.transform = '';
-                mainSlide.style.transition = '';
-            }, 180);
+                mainSlide.style.opacity = '';
+                setTimeout(function() { mainSlide.style.transition = ''; }, dur);
+            }, dur);
             return;
         }
 

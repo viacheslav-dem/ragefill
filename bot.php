@@ -23,7 +23,7 @@ declare(strict_types=1);
  *
  * 3) Set bot description (shown before user presses /start):
  * POST https://api.telegram.org/bot<TOKEN>/setMyDescription
- * {"description":"RAGEFILL — сверхострые соусы ручной работы.\n\nНатуральный состав, небольшие партии, максимальный жар. Откройте каталог и выберите свой огонь!"}
+ * {"description":"RAGE FILL — сверхострые соусы ручной работы.\n\nНатуральный состав, небольшие партии, максимальный жар. Откройте каталог и выберите свой огонь!"}
  *
  * 4) Set bot short description (shown in bot profile / search):
  * POST https://api.telegram.org/bot<TOKEN>/setMyShortDescription
@@ -117,7 +117,7 @@ if (isset($update['message'])) {
 
     } elseif ($text === '/help' || $text === "\xE2\x9D\x93 Помощь") {
         sendMessage($botToken, $chatId,
-            "\xF0\x9F\x94\xA5 *RAGEFILL — Команды*\n\n"
+            "\xF0\x9F\x94\xA5 *RAGE FILL — Команды*\n\n"
             . "/start — Приветствие и каталог\n"
             . "/contact — Связаться с нами \xF0\x9F\x93\xAC\n"
             . "/help — Эта справка\n\n"
@@ -186,7 +186,7 @@ function setupBot(string $token, string $webAppUrl): void
     echo "setChatMenuButton: {$r2}\n";
 
     // 3. Set bot description (before /start screen)
-    $description = 'RAGEFILL — сверхострые соусы ручной работы.' . "\n\n"
+    $description = 'RAGE FILL — сверхострые соусы ручной работы.' . "\n\n"
         . 'Натуральный состав, небольшие партии, максимальный жар. '
         . 'Откройте каталог и выберите свой огонь!';
     $r3 = botApiCall($token, 'setMyDescription', ['description' => $description]);

@@ -32,7 +32,7 @@ const ABOUT_FAQ = [
         'answer' => 'Срок годности наших соусов — 12 месяцев с даты изготовления. В закрытом виде храните в прохладном тёмном месте при температуре до +25°C. После вскрытия — обязательно в холодильнике, и соус сохранит вкус ещё 3–4 месяца. Дата изготовления указана на этикетке.',
     ],
     [
-        'question' => 'Из чего делают соусы RAGEFILL?',
+        'question' => 'Из чего делают соусы  RAGE FILL?',
         'answer' => 'Только натуральные ингредиенты: свежие острые перцы, которые мы выращиваем сами (Carolina Reaper, Habanero, Bhut Jolokia, Apocalypse Scorpion и другие), овощи, специи и уксус. В составе нет консервантов, красителей и усилителей вкуса. Каждая партия готовится вручную небольшими порциями — так мы контролируем качество и вкус.',
     ],
     [
@@ -328,10 +328,12 @@ $app->get('/catalog', function (Request $request, Response $response) use ($db, 
     $html = file_get_contents(__DIR__ . '/catalog.html');
 
     $baseUrl = rtrim($config['base_url'], '/');
-    $html = str_replace('{{SEO_TITLE}}', 'Каталог — RAGEFILL | Острые соусы ручной работы', $html);
+    $html = str_replace('{{SEO_TITLE}}', 'Каталог — RAGE FILL | Острые соусы ручной работы', $html);
     $html = str_replace('{{SEO_META}}', $seo->catalogMeta($sauces), $html);
     $html = str_replace('{{SEO_JSONLD}}', $seo->catalogJsonLd($sauces) . "\n" . $seo->websiteJsonLd(), $html);
     $html = str_replace('{{HREFLANG_URL}}', $baseUrl . '/catalog', $html);
+    $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
+    $html = str_replace('{{CONTACT_TG}}', $contactTg, $html);
 
     $ssrHtml = '';
     foreach ($sauces as $sauce) {
@@ -515,7 +517,7 @@ function renderFooter(array $config): string
             </div>
         </div>
         <div class="site-footer__bottom">
-            <div class="site-footer__copy">&copy; {$year} RAGEFILL. Все права защищены.</div>
+            <div class="site-footer__copy">&copy; {$year} RAGE FILL. Все права защищены.</div>
             <a href="/privacy" class="site-footer__privacy-link">Политика конфиденциальности</a>
         </div>
     </footer>
@@ -584,11 +586,11 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database
     $breadcrumbLd = $seo->breadcrumbJsonLd($sauce['name'], $sauceSlug);
     $category = $sauce['category'] ?? 'sauce';
     $titleSuffix = match ($category) {
-        'gift_set' => 'подарочный набор RAGEFILL',
-        'pickled_pepper' => 'маринованные перцы RAGEFILL',
-        'spicy_peanut' => 'острый арахис RAGEFILL',
-        'spice' => 'специи RAGEFILL',
-        default => 'острый соус RAGEFILL',
+        'gift_set' => 'подарочный набор RAGE FILL',
+        'pickled_pepper' => 'маринованные перцы RAGE FILL',
+        'spicy_peanut' => 'острый арахис RAGE FILL',
+        'spice' => 'специи RAGE FILL',
+        default => 'острый соус RAGE FILL',
     };
     $title = htmlspecialchars($sauce['name'] . ' — ' . $titleSuffix, ENT_QUOTES, 'UTF-8');
 
@@ -1031,7 +1033,7 @@ function renderPrivacyPage(array $config, SeoHelper $seo): string
             <article class="privacy-page" style="max-width: 720px; margin: 0 auto; padding: 32px 20px 40px;">
                 <h1 style="font-family: var(--font-display); font-size: 2rem; margin-bottom: 24px;">Политика конфиденциальности</h1>
 
-                <p>Настоящая политика конфиденциальности описывает, как RAGEFILL обрабатывает информацию при использовании нашего сайта и Telegram-бота.</p>
+                <p>Настоящая политика конфиденциальности описывает, как RAGE FILL обрабатывает информацию при использовании нашего сайта и Telegram-бота.</p>
 
                 <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin: 24px 0 12px;">Какие данные мы собираем</h2>
                 <ul style="padding-left: 20px; margin-bottom: 16px;">
@@ -1115,8 +1117,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $footer = renderFooter($config);
 
     // SEO
-    $title = 'RAGEFILL — Острые соусы ручной работы | Минск, Беларусь';
-    $desc = 'Острые соусы ручной работы RAGEFILL. Собственные перцы, от лёгкой до экстремальной остроты, натуральные ингредиенты. Каталог, доставка по Беларуси.';
+    $title = 'RAGE FILL — Острые соусы ручной работы | Минск, Беларусь';
+    $desc = 'Острые соусы ручной работы RAGE FILL. Собственные перцы, от лёгкой до экстремальной остроты, натуральные ингредиенты. Каталог, доставка по Беларуси.';
     $url = $baseUrl . '/';
 
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
@@ -1180,8 +1182,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         ['icon' => '<img src="/uploads/pepper.svg" alt="" width="36" height="36">', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
         ['icon' => '<img src="/uploads/branch.svg" alt="" width="36" height="36">', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
         ['icon' => '<img src="/uploads/gift.svg" alt="" width="36" height="36">', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
-        ['icon' => '<img src="/uploads/fire.svg" alt="" width="36" height="36">', 'title' => 'От лёгкой до экстремальной', 'text' => 'Пять уровней остроты — найдётся соус для каждого, от новичка до экстремала.'],
-        ['icon' => '<img src="/uploads/box.svg" alt="" width="36" height="36">', 'title' => 'Доставка по Беларуси', 'text' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту.'],
+        ['icon' => '<img src="/uploads/fire.svg" alt="" width="36" height="36">', 'title' => 'Только честная острота', 'text' => 'Готовим соусы из натуральных сверхострых перцев без добавления экстракта капсаицина!'],
+        ['icon' => '<img src="/uploads/box.svg" alt="" width="36" height="36">', 'title' => 'Доставка по Минску и всей Беларуси (Белпочта, Европочта)', 'text' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту.'],
         ['icon' => '<img src="/uploads/pizza.svg" alt="" width="36" height="36">', 'title' => 'Запоминающийся вкус', 'text' => 'Соусы, которые действительно жгут и запоминаются. Яркий вкус для мяса, пиццы, бургеров.'],
     ];
 
@@ -1273,6 +1275,14 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                     <a href="#faq" class="header__nav-link">Частые вопросы</a>
                     <a href="https://t.me/{$contactTg}" class="header__nav-link header__nav-link--cta" target="_blank" rel="noopener">Написать нам</a>
                 </nav>
+                <div class="header__desktop-search">
+                    <svg class="header__search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                    <label for="home-search-input" class="visually-hidden">Поиск по каталогу</label>
+                    <input type="text" class="header__search-input" id="home-search-input" placeholder="Поиск по каталогу..." autocomplete="off">
+                </div>
                 <div class="header__actions">
                     <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
                         <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -1334,8 +1344,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         <section class="home-section home-about-section">
             <div class="home-container">
                 <div class="home-about" data-aos="fade-up">
-                    <p>RAGEFILL — это острые соусы ручной работы из Минска. Мы выращиваем перцы сами: Carolina Reaper, Apocalypse Scorpion, Bhut Jolokia, Habanero, 7 POT и другие сорта. Все соусы готовим небольшими партиями по авторским рецептам — без консервантов, красителей и усилителей вкуса.</p>
-                    <p>Помимо соусов в каталоге — подарочные наборы, маринованные перцы, острый арахис и специи. Доставляем по Минску и всей Беларуси.</p>
+                    <p>RAGE FILL — это острые соусы ручной работы из Беларуси. Все соусы готовим небольшими партиями по авторским рецептам. Используем только натуральные ингредиенты и собственные перцы (Carolina Reaper, Apocalypse Scorpion, Big Red Mama, Big Red Mama, 7 POT, Bhut Jolokia, Habanero, The Pain, Jalapeno и другие сорта).</p>
+                    <p>Помимо соусов в каталоге представлены подарочные наборы, маринованные перцы, острый арахис и специи. Широкий выбор вкусов и остроты: от легкой до экстремальной. Доставляем по Минску и всей Беларуси.</p>
                 </div>
             </div>
         </section>
@@ -1458,6 +1468,17 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
                         btn.setAttribute('aria-expanded','false');
                         document.body.classList.remove('menu-open');
                     });
+                });
+            })();
+
+            // Home search → redirect to catalog
+            (function(){
+                var input=document.getElementById('home-search-input');
+                if(!input)return;
+                input.addEventListener('keydown',function(e){
+                    if(e.key==='Enter'&&input.value.trim()){
+                        window.location.href='/catalog?q='+encodeURIComponent(input.value.trim());
+                    }
                 });
             })();
         </script>

@@ -482,11 +482,26 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// Drag-to-close only from the handle / image area at the top
 let touchStartY = 0;
-modal.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+let dragToClose = false;
+const modalHandle = modal.querySelector('.modal__top-bar') || modal.querySelector('.modal__handle');
+const modalImageWrap = modal.querySelector('.modal__image-wrapper');
+
+function onDragStart(e) {
+    touchStartY = e.touches[0].clientY;
+    dragToClose = true;
+}
+[modalHandle, modalImageWrap].forEach(el => {
+    if (el) el.addEventListener('touchstart', onDragStart, { passive: true });
+});
 modal.addEventListener('touchmove', (e) => {
-    if (e.touches[0].clientY - touchStartY > 100 && modal.scrollTop <= 0) closeModal();
+    if (dragToClose && e.touches[0].clientY - touchStartY > 80) {
+        dragToClose = false;
+        closeModal();
+    }
 }, { passive: true });
+modal.addEventListener('touchend', () => { dragToClose = false; }, { passive: true });
 
 document.getElementById('modal-contact-btn').addEventListener('click', (e) => {
     haptic('impact', 'medium');
