@@ -75,13 +75,13 @@
                 px: Math.random() * Math.PI * 2,
                 py: Math.random() * Math.PI * 2,
                 // Speed multipliers
-                sx: 0.08 + Math.random() * 0.1,
-                sy: 0.06 + Math.random() * 0.08,
+                sx: 0.15 + Math.random() * 0.12,
+                sy: 0.12 + Math.random() * 0.1,
                 // Blob size (relative to canvas diagonal)
                 size: 0.35 + Math.random() * 0.35,
                 // Slight pulse
                 pulsePhase: Math.random() * Math.PI * 2,
-                pulseSpeed: 0.04 + Math.random() * 0.06,
+                pulseSpeed: 0.07 + Math.random() * 0.06,
                 pulseAmp: 0.05 + Math.random() * 0.06,
             });
         }
@@ -132,7 +132,7 @@
 
     function loop() {
         if (paused) return;
-        time += 0.009;
+        time += 0.016;
         draw();
         animId = requestAnimationFrame(loop);
     }

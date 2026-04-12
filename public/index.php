@@ -88,10 +88,36 @@ const DEFAULT_ABOUT = '<p>RAGE FILL — это острые соусы ручн�
 $app = AppFactory::create();
 
 $app->addBodyParsingMiddleware();
-$app->addErrorMiddleware(
+$errorMiddleware = $app->addErrorMiddleware(
     displayErrorDetails: (bool)($config['debug'] ?? false),
     logErrors: true,
     logErrorDetails: true,
+);
+
+// Custom 404/405 handler — render friendly page
+$errorMiddleware->setErrorHandler(
+    \Slim\Exception\HttpNotFoundException::class,
+    function (Request $request, \Throwable $exception, bool $displayErrorDetails) use ($config) {
+        $response = new \Slim\Psr7\Response();
+        $title = 'Страница не найдена — RAGE FILL';
+        ob_start();
+        include __DIR__ . '/../templates/product-404.php';
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+        return $response->withStatus(404);
+    }
+);
+$errorMiddleware->setErrorHandler(
+    \Slim\Exception\HttpMethodNotAllowedException::class,
+    function (Request $request, \Throwable $exception, bool $displayErrorDetails) use ($config) {
+        $response = new \Slim\Psr7\Response();
+        $title = 'Страница не найдена — RAGE FILL';
+        ob_start();
+        include __DIR__ . '/../templates/product-404.php';
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+        return $response->withStatus(404);
+    }
 );
 
 // CORS middleware

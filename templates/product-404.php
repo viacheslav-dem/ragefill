@@ -19,12 +19,18 @@ $metaTags = '<meta name="robots" content="noindex">';
             </div>
         </div>
     </header>
-    <main>
-        <div class="empty-state" style="padding-top: 80px;">
-            <div class="empty-state__icon"><img src="/uploads/pepper.svg" alt="" width="48" height="48"></div>
-            <div class="empty-state__text">Товар не найден</div>
-            <div class="empty-state__hint">Возможно, он был удалён или скрыт</div>
-            <a href="/catalog" class="empty-state__btn">Вернуться в каталог</a>
+    <main style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 80px);padding:40px 20px;text-align:center;">
+        <div>
+            <div style="font-size:80px;line-height:1;margin-bottom:16px;opacity:0.25;">
+                <img src="/uploads/pepper.svg" alt="" width="72" height="72" style="opacity:0.5;">
+            </div>
+            <h1 style="font-family:var(--font-display);font-size:clamp(48px,10vw,96px);font-weight:700;letter-spacing:4px;color:var(--text-primary);margin:0 0 8px;line-height:1.1;">404</h1>
+            <p style="font-size:18px;color:var(--text-secondary);margin:0 0 6px;font-weight:600;">Страница не найдена</p>
+            <p style="font-size:14px;color:var(--text-muted);margin:0 0 32px;">Возможно, она была удалена или перемещена</p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                <a href="/" style="display:inline-flex;align-items:center;gap:6px;padding:12px 28px;background:var(--fire-orange);color:#fff;text-decoration:none;border-radius:var(--radius-pill);font-size:15px;font-weight:700;transition:background 0.2s,transform 0.2s;" onmouseover="this.style.background='#d04a08'" onmouseout="this.style.background='var(--fire-orange)'">На главную</a>
+                <a href="/catalog" style="display:inline-flex;align-items:center;gap:6px;padding:12px 28px;border:2px solid var(--fire-orange);color:var(--fire-orange);text-decoration:none;border-radius:var(--radius-pill);font-size:15px;font-weight:700;transition:background 0.2s,color 0.2s;" onmouseover="this.style.background='var(--fire-orange)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='var(--fire-orange)'">Каталог</a>
+            </div>
         </div>
     </main>
     <script data-cfasync="false">
