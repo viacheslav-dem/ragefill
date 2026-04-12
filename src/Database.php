@@ -30,13 +30,52 @@ class Database
 
     private function migrate(): void
     {
+        // --- site_settings table ---
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS site_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        ");
+
+        // Seed default site_settings if table is empty
+        $settingsCount = (int)$this->pdo->query("SELECT COUNT(*) FROM site_settings")->fetchColumn();
+        if ($settingsCount === 0) {
+            $this->seedDefaultSettings();
+        }
+
+        // --- categories table ---
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                emoji TEXT NOT NULL DEFAULT '',
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        ");
+        // Seed default categories if table is empty
+        $catCount = (int)$this->pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn();
+        if ($catCount === 0) {
+            $this->pdo->exec("
+                INSERT INTO categories (slug, name, emoji, sort_order) VALUES
+                ('sauce', 'Соусы', '🔥', 0),
+                ('gift_set', 'Подарочные наборы', '🎁', 1),
+                ('pickled_pepper', 'Маринованные перцы', '🫙', 2),
+                ('spicy_peanut', 'Острый арахис', '🥜', 3),
+                ('spice', 'Специи', '🌿', 4)
+            ");
+        }
+
         // Check if table already exists to avoid unnecessary DDL
         $exists = $this->pdo->query(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sauces'"
         )->fetch();
 
         if ($exists) {
-            // Add in_stock column if missing
+            // Add missing columns
             $cols = $this->pdo->query("PRAGMA table_info(sauces)")->fetchAll();
             $colNames = array_column($cols, 'name');
             if (!in_array('in_stock', $colNames, true)) {
@@ -69,6 +108,12 @@ class Database
                     $stmt->execute([self::generateSlug($row['name']), $row['id']]);
                 }
             }
+            if (!in_array('meta_title', $colNames, true)) {
+                $this->pdo->exec("ALTER TABLE sauces ADD COLUMN meta_title TEXT NOT NULL DEFAULT ''");
+            }
+            if (!in_array('meta_description', $colNames, true)) {
+                $this->pdo->exec("ALTER TABLE sauces ADD COLUMN meta_description TEXT NOT NULL DEFAULT ''");
+            }
             return;
         }
 
@@ -91,10 +136,59 @@ class Database
                 is_new INTEGER NOT NULL DEFAULT 0 CHECK(is_new IN (0, 1)),
                 images TEXT NOT NULL DEFAULT '[]',
                 slug TEXT NOT NULL DEFAULT '',
+                meta_title TEXT NOT NULL DEFAULT '',
+                meta_description TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
         ");
+    }
+
+    private function seedDefaultSettings(): void
+    {
+        $defaults = [
+            'hero_tagline' => 'Острые соусы ручной работы, маринованные перцы, подарочные наборы и жгучие закуски',
+            'hero_description' => 'Идеальный выбор для мяса, пиццы, бургеров и закусок <br> Доставка по Минску и Беларуси',
+            'hero_btn_primary' => 'Смотреть каталог',
+            'hero_btn_secondary' => 'Написать нам',
+            'contact_telegram' => 'rage_fill',
+            'instagram_reviews_url' => 'https://www.instagram.com/stories/highlights/18073628308388969/',
+            'featured_title' => 'Популярное',
+            'section_title_benefits' => 'Почему выбирают нас',
+            'section_title_reviews' => 'Отзывы',
+            'section_title_faq' => 'Частые вопросы',
+            'footer_tagline' => 'Острые соусы ручной работы, Беларусь',
+            'footer_about' => 'Все соусы изготавливаются вручную из свежих перцев. Для заказа свяжитесь с нами через Telegram.',
+            'about_text' => '<p>RAGE FILL — это острые соусы ручной работы из Беларуси. Все соусы готовим небольшими партиями по авторским рецептам. Используем только натуральные ингредиенты и собственные перцы (Carolina Reaper, Apocalypse Scorpion, Big Red Mama, Big Red Mama, 7 POT, Bhut Jolokia, Habanero, The Pain, Jalapeno и другие сорта).</p><p>Помимо соусов в каталоге представлены подарочные наборы, маринованные перцы, острый арахис и специи. Широкий выбор вкусов и остроты: от легкой до экстремальной. Доставляем по Минску и всей Беларуси.</p>',
+            'benefits' => json_encode([
+                ['icon' => 'pepper.svg', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
+                ['icon' => 'branch.svg', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
+                ['icon' => 'gift.svg', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
+                ['icon' => 'fire.svg', 'title' => 'Только честная острота', 'text' => 'Готовим соусы из натуральных сверхострых перцев без добавления экстракта капсаицина!'],
+                ['icon' => 'box.svg', 'title' => 'Доставка по Беларуси', 'text' => 'Ускоренная отправка на следующий день после заказа. Белпочта, Европочта.'],
+                ['icon' => 'pizza.svg', 'title' => 'Запоминающийся вкус', 'text' => 'Соусы, которые действительно жгут и запоминаются. Яркий вкус для мяса, пиццы, бургеров.'],
+            ], JSON_UNESCAPED_UNICODE),
+            'testimonials' => json_encode([
+                ['author' => 'Anton Kavaliou', 'text' => 'Попробовал ROWAN. Интересный такой вкус. Понравилось, что очень насыщенный. Наверное, можно с любой домашней едой использовать. TORMADO я еще раньше пробовал — его оставлю на стейки, с ним лучше всего.'],
+                ['author' => 'Наталья Голик', 'text' => 'Пробовали ваши соусы) все ооочень вкусные и интересные!) Но! Agonix это ад адище 🔥🔥🔥 жарче чем в преисподней) очень крут) ❤️'],
+                ['author' => 'Света Комарова', 'text' => 'Решила я попробовать Cheron. Грамулечку. Это просто 🔥🔥🔥 Язык пылал. Муж в восторге! Спасибо большое. Мужу реально понравилось, сказал есть вкус. Я никакого вкуса не разобрала, я, мне кажется, обожгла язык 😱'],
+            ], JSON_UNESCAPED_UNICODE),
+            'faq' => json_encode([
+                ['question' => 'Как сделать заказ?', 'answer' => 'Напишите нам в Telegram <a href="https://t.me/rage_fill">@rage_fill</a> — поможем выбрать соус и оформим заказ. Также можно открыть каталог прямо в Telegram-боте и выбрать товар там. Оплата — наличными при самовывозе, переводом на карту или наложенным платежом при доставке. Обычно отправляем заказ в течение 1–2 дней.'],
+                ['question' => 'Какие способы доставки доступны?', 'answer' => 'Доставляем по Минску и всей Беларуси через Белпочту и Европочту. Срок доставки — 2–5 дней в зависимости от региона. Возможен самовывоз в Минске — уточняйте адрес и время в Telegram. Каждый заказ упаковываем надёжно, чтобы бутылки доехали в целости.'],
+                ['question' => 'Какой срок годности у соусов?', 'answer' => 'Срок годности наших соусов — 12 месяцев с даты изготовления. В закрытом виде храните в прохладном тёмном месте при температуре до +25°C. После вскрытия — обязательно в холодильнике, и соус сохранит вкус ещё 3–4 месяца. Дата изготовления указана на этикетке.'],
+                ['question' => 'Из чего делают соусы RAGE FILL?', 'answer' => 'Только натуральные ингредиенты: свежие острые перцы, которые мы выращиваем сами (Carolina Reaper, Habanero, Bhut Jolokia, Apocalypse Scorpion и другие), овощи, специи и уксус. В составе нет консервантов, красителей и усилителей вкуса. Каждая партия готовится вручную небольшими порциями — так мы контролируем качество и вкус.'],
+                ['question' => 'Какой соус выбрать, если я не пробовал острое?', 'answer' => 'Начните с соусов с уровнем остроты 1–2 из 5. Они дают приятное тепло и раскрывают вкус блюда без экстремального жжения. Подойдут к мясу, пицце, бургерам и закускам. Если хотите попробовать разное — посмотрите наши подарочные наборы с соусами разной остроты. Не уверены в выборе? Напишите нам в Telegram — подберём под ваш вкус!'],
+                ['question' => 'Можно ли заказать соус в подарок?', 'answer' => 'Да! У нас есть готовые подарочные наборы с соусами разной остроты — от лёгкой до экстремальной. Также можем собрать индивидуальный комплект по вашему пожеланию. Отличный подарок на День рождения, 23 февраля, 8 марта, Новый год или любой другой праздник. Каждый набор красиво упакован и готов к вручению.'],
+            ], JSON_UNESCAPED_UNICODE),
+        ];
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+        ");
+        foreach ($defaults as $key => $value) {
+            $stmt->execute([$key, $value]);
+        }
     }
 
     public function getPdo(): PDO
@@ -139,8 +233,8 @@ class Database
         $slug = $this->ensureUniqueSlug($slug, null);
 
         $stmt = $this->pdo->prepare("
-            INSERT INTO sauces (name, subtitle, description, composition, volume, image, images, heat_level, sort_order, is_active, in_stock, category, is_hit, is_low_stock, slug)
-            VALUES (:name, :subtitle, :description, :composition, :volume, :image, :images, :heat_level, :sort_order, :is_active, :in_stock, :category, :is_hit, :is_low_stock, :slug)
+            INSERT INTO sauces (name, subtitle, description, composition, volume, image, images, heat_level, sort_order, is_active, in_stock, category, is_hit, is_low_stock, is_new, slug, meta_title, meta_description)
+            VALUES (:name, :subtitle, :description, :composition, :volume, :image, :images, :heat_level, :sort_order, :is_active, :in_stock, :category, :is_hit, :is_low_stock, :is_new, :slug, :meta_title, :meta_description)
         ");
 
         $stmt->execute([
@@ -155,11 +249,13 @@ class Database
             'sort_order' => max(0, (int)($data['sort_order'] ?? 0)),
             'is_active' => in_array($data['is_active'] ?? 1, [0, '0'], true) ? 0 : 1,
             'in_stock' => in_array($data['in_stock'] ?? 1, [0, '0'], true) ? 0 : 1,
-            'category' => self::validateCategory($data['category'] ?? 'sauce'),
+            'category' => $this->validateCategory($data['category'] ?? 'sauce'),
             'is_hit' => in_array($data['is_hit'] ?? 0, [1, '1'], true) ? 1 : 0,
             'is_low_stock' => in_array($data['is_low_stock'] ?? 0, [1, '1'], true) ? 1 : 0,
             'is_new' => in_array($data['is_new'] ?? 0, [1, '1'], true) ? 1 : 0,
             'slug' => $slug,
+            'meta_title' => trim((string)($data['meta_title'] ?? '')),
+            'meta_description' => trim((string)($data['meta_description'] ?? '')),
         ]);
 
         return (int)$this->pdo->lastInsertId();
@@ -189,10 +285,12 @@ class Database
             'sort_order' => fn($v) => max(0, (int)$v),
             'is_active' => fn($v) => in_array($v, [0, '0'], true) ? 0 : 1,
             'in_stock' => fn($v) => in_array($v, [0, '0'], true) ? 0 : 1,
-            'category' => fn($v) => self::validateCategory($v),
+            'category' => fn($v) => $this->validateCategory($v),
             'is_hit' => fn($v) => in_array($v, [1, '1'], true) ? 1 : 0,
             'is_low_stock' => fn($v) => in_array($v, [1, '1'], true) ? 1 : 0,
             'is_new' => fn($v) => in_array($v, [1, '1'], true) ? 1 : 0,
+            'meta_title' => fn($v) => trim((string)$v),
+            'meta_description' => fn($v) => trim((string)$v),
         ];
 
         foreach ($sanitizers as $field => $sanitize) {
@@ -224,11 +322,96 @@ class Database
         return max(1, min(5, (int)$value));
     }
 
-    private static function validateCategory(mixed $value): string
+    private ?array $categorySlugsCache = null;
+
+    private function validateCategory(mixed $value): string
     {
-        $allowed = ['sauce', 'gift_set', 'pickled_pepper', 'spicy_peanut', 'spice'];
+        if ($this->categorySlugsCache === null) {
+            $this->categorySlugsCache = array_column(
+                $this->pdo->query("SELECT slug FROM categories")->fetchAll(),
+                'slug'
+            );
+        }
         $v = (string)$value;
-        return in_array($v, $allowed, true) ? $v : 'sauce';
+        return in_array($v, $this->categorySlugsCache, true) ? $v : 'sauce';
+    }
+
+    // --- Category CRUD ---
+
+    public function getAllCategories(): array
+    {
+        return $this->pdo->query("SELECT * FROM categories ORDER BY sort_order ASC, id ASC")->fetchAll();
+    }
+
+    public function getCategoryById(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM categories WHERE id = ?");
+        $stmt->execute([$id]);
+        $result = $stmt->fetch();
+        return $result ?: null;
+    }
+
+    public function createCategory(array $data): int
+    {
+        $name = trim((string)($data['name'] ?? ''));
+        $slug = trim((string)($data['slug'] ?? ''));
+        if ($slug === '') {
+            $slug = self::generateSlug($name);
+        }
+        $emoji = trim((string)($data['emoji'] ?? ''));
+        $sortOrder = max(0, (int)($data['sort_order'] ?? 0));
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO categories (slug, name, emoji, sort_order) VALUES (:slug, :name, :emoji, :sort_order)
+        ");
+        $stmt->execute(['slug' => $slug, 'name' => $name, 'emoji' => $emoji, 'sort_order' => $sortOrder]);
+        $this->categorySlugsCache = null;
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    public function updateCategory(int $id, array $data): bool
+    {
+        // If slug is changing, update all sauces that use the old slug
+        $oldCat = $this->getCategoryById($id);
+        $newSlug = isset($data['slug']) ? trim((string)$data['slug']) : null;
+        $oldSlug = $oldCat ? $oldCat['slug'] : null;
+
+        $fields = [];
+        $params = ['id' => $id];
+        foreach (['slug', 'name', 'emoji', 'sort_order'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = "$field = :$field";
+                $params[$field] = $field === 'sort_order' ? max(0, (int)$data[$field]) : trim((string)$data[$field]);
+            }
+        }
+        if (empty($fields)) return false;
+        $sql = "UPDATE categories SET " . implode(', ', $fields) . " WHERE id = :id";
+        $stmt = $this->pdo->prepare($sql);
+        $result = $stmt->execute($params);
+
+        // Cascade slug change to sauces
+        if ($result && $newSlug !== null && $oldSlug !== null && $newSlug !== $oldSlug) {
+            $stmt = $this->pdo->prepare("UPDATE sauces SET category = ? WHERE category = ?");
+            $stmt->execute([$newSlug, $oldSlug]);
+        }
+
+        $this->categorySlugsCache = null;
+        return $result;
+    }
+
+    public function deleteCategory(int $id): bool|string
+    {
+        $cat = $this->getCategoryById($id);
+        if (!$cat) return 'Категория не найдена';
+        // Check if any products use this category
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM sauces WHERE category = ?");
+        $stmt->execute([$cat['slug']]);
+        $count = (int)$stmt->fetchColumn();
+        if ($count > 0) return "Нельзя удалить: $count товаров используют эту категорию";
+        $stmt = $this->pdo->prepare("DELETE FROM categories WHERE id = ?");
+        $stmt->execute([$id]);
+        $this->categorySlugsCache = null;
+        return true;
     }
 
     public static function generateSlug(string $name): string
@@ -268,6 +451,57 @@ class Database
                 return $slug;
             }
             $slug = $base . '-' . (++$i);
+        }
+    }
+
+    // --- Site Settings ---
+
+    public function getSetting(string $key): ?string
+    {
+        $stmt = $this->pdo->prepare("SELECT value FROM site_settings WHERE key = ?");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch();
+        return $row ? $row['value'] : null;
+    }
+
+    public function getSettingJson(string $key): mixed
+    {
+        $val = $this->getSetting($key);
+        return $val !== null ? json_decode($val, true) : null;
+    }
+
+    public function setSetting(string $key, string $value): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+        ");
+        $stmt->execute([$key, $value]);
+    }
+
+    public function setSettingJson(string $key, mixed $value): void
+    {
+        $this->setSetting($key, json_encode($value, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function getAllSettings(): array
+    {
+        $rows = $this->pdo->query("SELECT key, value FROM site_settings ORDER BY key")->fetchAll();
+        $result = [];
+        foreach ($rows as $row) {
+            $result[$row['key']] = $row['value'];
+        }
+        return $result;
+    }
+
+    public function setMultipleSettings(array $settings): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+        ");
+        foreach ($settings as $key => $value) {
+            $stmt->execute([$key, is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE)]);
         }
     }
 }

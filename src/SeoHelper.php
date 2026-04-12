@@ -49,27 +49,39 @@ class SeoHelper
             $shortDesc .= '…';
         }
 
-        // Category-aware title suffix
-        $titleSuffix = match ($category) {
-            'gift_set' => 'подарочный набор RAGE FILL',
-            'pickled_pepper' => 'маринованные перцы RAGE FILL',
-            'spicy_peanut' => 'острый арахис RAGE FILL',
-            'spice' => 'специи RAGE FILL',
-            default => 'острый соус RAGE FILL',
-        };
-        $title = "{$name} — {$titleSuffix}";
-
-        // Fallback description: subtitle → description excerpt → generated
-        $desc = $subtitle ?: $shortDesc;
-        if ($desc === '') {
-            $categoryLabel = match ($category) {
-                'gift_set' => 'Подарочный набор',
-                'pickled_pepper' => 'Маринованные перцы',
-                'spicy_peanut' => 'Острый арахис',
-                'spice' => 'Специи',
-                default => 'Острый соус',
+        // Use custom meta_title if set
+        $customTitle = trim($sauce['meta_title'] ?? '');
+        if ($customTitle !== '') {
+            $title = $customTitle;
+        } else {
+            // Category-aware title suffix
+            $titleSuffix = match ($category) {
+                'gift_set' => 'подарочный набор RAGE FILL',
+                'pickled_pepper' => 'маринованные перцы RAGE FILL',
+                'spicy_peanut' => 'острый арахис RAGE FILL',
+                'spice' => 'специи RAGE FILL',
+                default => 'острый соус RAGE FILL',
             };
-            $desc = "{$categoryLabel} {$name} от RAGE FILL. Острота {$heat}/5. Купить в Беларуси с доставкой.";
+            $title = "{$name} — {$titleSuffix}";
+        }
+
+        // Use custom meta_description if set
+        $customDesc = trim($sauce['meta_description'] ?? '');
+        if ($customDesc !== '') {
+            $desc = $customDesc;
+        } else {
+            // Fallback description: subtitle → description excerpt → generated
+            $desc = $subtitle ?: $shortDesc;
+            if ($desc === '') {
+                $categoryLabel = match ($category) {
+                    'gift_set' => 'Подарочный набор',
+                    'pickled_pepper' => 'Маринованные перцы',
+                    'spicy_peanut' => 'Острый арахис',
+                    'spice' => 'Специи',
+                    default => 'Острый соус',
+                };
+                $desc = "{$categoryLabel} {$name} от RAGE FILL. Острота {$heat}/5. Купить в Беларуси с доставкой.";
+            }
         }
 
         $url = $this->baseUrl . '/sauce/' . ($sauce['slug'] ?? $sauce['id']);

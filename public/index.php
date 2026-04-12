@@ -18,7 +18,30 @@ $db = new Database($config['db_path']);
 $auth = new AuthMiddleware($config['admin_password']);
 $seo = new SeoHelper($config['base_url']);
 
-const ABOUT_FAQ = [
+/** Return filemtime of a public asset as cache-buster string. */
+function asset_v(string $file): string {
+    $path = __DIR__ . '/' . ltrim($file, '/');
+    return file_exists($path) ? (string) filemtime($path) : '0';
+}
+
+/** Replace {{V_*}} asset version placeholders in HTML templates (catalog.html, admin.html). */
+function replace_asset_versions(string $html): string {
+    return str_replace(
+        ['{{V_FONTS}}', '{{V_STYLE}}', '{{V_CATALOG}}', '{{V_ADMIN}}', '{{V_SCROLL}}'],
+        [asset_v('css/fonts.css'), asset_v('css/style.css'), asset_v('js/catalog.js'), asset_v('js/admin.js'), asset_v('js/scroll-top.js')],
+        $html
+    );
+}
+
+/** Render a PHP template with extracted variables. */
+function render(string $template, array $vars = []): string {
+    extract($vars, EXTR_SKIP);
+    ob_start();
+    require __DIR__ . '/../templates/' . $template;
+    return ob_get_clean();
+}
+
+const DEFAULT_FAQ = [
     [
         'question' => 'Как сделать заказ?',
         'answer' => 'Напишите нам в Telegram <a href="https://t.me/rage_fill">@rage_fill</a> — поможем выбрать соус и оформим заказ. Также можно открыть каталог прямо в Telegram-боте и выбрать товар там. Оплата — наличными при самовывозе, переводом на карту или наложенным платежом при доставке. Обычно отправляем заказ в течение 1–2 дней.',
@@ -44,6 +67,23 @@ const ABOUT_FAQ = [
         'answer' => 'Да! У нас есть готовые подарочные наборы с соусами разной остроты — от лёгкой до экстремальной. Также можем собрать индивидуальный комплект по вашему пожеланию. Отличный подарок на День рождения, 23 февраля, 8 марта, Новый год или любой другой праздник. Каждый набор красиво упакован и готов к вручению.',
     ],
 ];
+
+const DEFAULT_BENEFITS = [
+    ['icon' => 'pepper.svg', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
+    ['icon' => 'branch.svg', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
+    ['icon' => 'gift.svg', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
+    ['icon' => 'fire.svg', 'title' => 'Только честная острота', 'text' => 'Готовим соусы из натуральных сверхострых перцев без добавления экстракта капсаицина!'],
+    ['icon' => 'box.svg', 'title' => 'Доставка по Беларуси', 'text' => ' Ускоренная отправка на следующий день после заказа. Белпочта, Европочта.'],
+    ['icon' => 'pizza.svg', 'title' => 'Запоминающийся вкус', 'text' => 'Соусы, которые действительно жгут и запоминаются. Яркий вкус для мяса, пиццы, бургеров.'],
+];
+
+const DEFAULT_TESTIMONIALS = [
+    ['author' => 'Anton Kavaliou', 'text' => 'Попробовал ROWAN. Интересный такой вкус. Понравилось, что очень насыщенный. Наверное, можно с любой домашней едой использовать. TORMADO я еще раньше пробовал — его оставлю на стейки, с ним лучше всего.'],
+    ['author' => 'Наталья Голик', 'text' => 'Пробовали ваши соусы) все ооочень вкусные и интересные!) Но! Agonix это ад адище 🔥🔥🔥 жарче чем в преисподней) очень крут) ❤️'],
+    ['author' => 'Света Комарова', 'text' => 'Решила я попробовать Cheron. Грамулечку. Это просто 🔥🔥🔥 Язык пылал. Муж в восторге! Спасибо большое. Мужу реально понравилось, сказал есть вкус. Я никакого вкуса не разобрала, я, мне кажется, обожгла язык 😱'],
+];
+
+const DEFAULT_ABOUT = '<p>RAGE FILL — это острые соусы ручной работы из Беларуси. Все соусы готовим небольшими партиями по авторским рецептам. Используем только натуральные ингредиенты и собственные перцы (Carolina Reaper, Apocalypse Scorpion, Big Red Mama, Big Red Mama, 7 POT, Bhut Jolokia, Habanero, The Pain, Jalapeno и другие сорта).</p><p>Помимо соусов в каталоге представлены подарочные наборы, маринованные перцы, острый арахис и специи. Широкий выбор вкусов и остроты: от легкой до экстремальной. Доставляем по Минску и всей Беларуси.</p>';
 
 $app = AppFactory::create();
 
@@ -102,6 +142,13 @@ $app->get('/api/sauces/{id}', function (Request $request, Response $response, ar
         return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
     }
     $response->getBody()->write(json_encode($sauce, JSON_UNESCAPED_UNICODE));
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+// Get all categories (public)
+$app->get('/api/categories', function (Request $request, Response $response) use ($db) {
+    $categories = $db->getAllCategories();
+    $response->getBody()->write(json_encode($categories, JSON_UNESCAPED_UNICODE));
     return $response->withHeader('Content-Type', 'application/json');
 });
 
@@ -177,6 +224,73 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         $sauce = $db->getSauceById($id);
         $response->getBody()->write(json_encode($sauce, JSON_UNESCAPED_UNICODE));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+    });
+
+    // Bulk operations (must be before {id} route)
+    $group->post('/sauces/bulk', function (Request $request, Response $response) use ($db, $config) {
+        $data = $request->getParsedBody() ?? [];
+        $ids = $data['ids'] ?? [];
+        $action = (string)($data['action'] ?? '');
+
+        if (empty($ids) || !is_array($ids)) {
+            $response->getBody()->write(json_encode(['error' => 'Не выбраны товары']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $pdo = $db->getPdo();
+        $pdo->beginTransaction();
+        try {
+            foreach ($ids as $id) {
+                $id = (int)$id;
+                switch ($action) {
+                    case 'activate':
+                        $db->updateSauce($id, ['is_active' => 1]);
+                        break;
+                    case 'deactivate':
+                        $db->updateSauce($id, ['is_active' => 0]);
+                        break;
+                    case 'in_stock':
+                        $db->updateSauce($id, ['in_stock' => 1]);
+                        break;
+                    case 'out_stock':
+                        $db->updateSauce($id, ['in_stock' => 0]);
+                        break;
+                    case 'delete':
+                        $sauce = $db->getSauceById($id);
+                        if ($sauce) {
+                            deleteImageFile($sauce['image'], $config);
+                            $additionalImages = json_decode($sauce['images'] ?? '[]', true) ?: [];
+                            foreach ($additionalImages as $img) {
+                                deleteImageFile($img, $config);
+                            }
+                            $db->deleteSauce($id);
+                        }
+                        break;
+                }
+            }
+            $pdo->commit();
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            $pdo->rollBack();
+            $response->getBody()->write(json_encode(['error' => 'Ошибка при обработке']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    });
+
+    // Reorder sauces (must be before {id} route)
+    $group->post('/sauces/reorder', function (Request $request, Response $response) use ($db) {
+        $data = $request->getParsedBody() ?? [];
+        $order = $data['order'] ?? [];
+        if (is_array($order)) {
+            $pdo = $db->getPdo();
+            $stmt = $pdo->prepare("UPDATE sauces SET sort_order = ? WHERE id = ?");
+            foreach ($order as $i => $id) {
+                $stmt->execute([$i, (int)$id]);
+            }
+        }
+        $response->getBody()->write(json_encode(['success' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
     });
 
     // Update sauce
@@ -268,6 +382,245 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         return $response->withHeader('Content-Type', 'application/json');
     });
 
+    // --- Site Settings ---
+
+    // Get all site settings
+    $group->get('/site-settings', function (Request $request, Response $response) use ($db) {
+        $settings = $db->getAllSettings();
+        // Decode JSON values for the client
+        $decoded = [];
+        foreach ($settings as $k => $v) {
+            $json = json_decode($v, true);
+            $decoded[$k] = $json !== null ? $json : $v;
+        }
+        $response->getBody()->write(json_encode($decoded, JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    // Update site settings (batch)
+    $group->post('/site-settings', function (Request $request, Response $response) use ($db) {
+        $data = $request->getParsedBody() ?? [];
+        if (empty($data)) {
+            $response->getBody()->write(json_encode(['error' => 'Нет данных']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $allowedKeys = [
+            'hero_title', 'hero_tagline', 'hero_description',
+            'hero_btn_primary', 'hero_btn_secondary',
+            'benefits', 'about_text', 'testimonials', 'faq',
+            'contact_telegram', 'instagram_reviews_url',
+            'featured_title', 'featured_product_ids',
+            'section_title_benefits', 'section_title_reviews', 'section_title_faq',
+            'footer_tagline', 'footer_about',
+        ];
+
+        $toSave = [];
+        foreach ($data as $key => $value) {
+            if (!in_array($key, $allowedKeys, true)) {
+                continue;
+            }
+            $toSave[$key] = is_array($value)
+                ? json_encode($value, JSON_UNESCAPED_UNICODE)
+                : (string)$value;
+        }
+
+        if (!empty($toSave)) {
+            $db->setMultipleSettings($toSave);
+        }
+
+        $response->getBody()->write(json_encode(['success' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    // --- Categories CRUD ---
+
+    $group->get('/categories', function (Request $request, Response $response) use ($db) {
+        $categories = $db->getAllCategories();
+        $response->getBody()->write(json_encode($categories, JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $group->post('/categories', function (Request $request, Response $response) use ($db) {
+        $data = $request->getParsedBody() ?? [];
+        $name = trim((string)($data['name'] ?? ''));
+        if ($name === '') {
+            $response->getBody()->write(json_encode(['error' => 'Название обязательно']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+        try {
+            $id = $db->createCategory($data);
+            $cat = $db->getCategoryById($id);
+            $response->getBody()->write(json_encode($cat, JSON_UNESCAPED_UNICODE));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+        } catch (\PDOException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Slug уже существует']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+    });
+
+    // Reorder categories (must be before {id} route)
+    $group->post('/categories/reorder', function (Request $request, Response $response) use ($db) {
+        $data = $request->getParsedBody() ?? [];
+        $order = $data['order'] ?? [];
+        if (is_array($order)) {
+            $pdo = $db->getPdo();
+            $stmt = $pdo->prepare("UPDATE categories SET sort_order = ? WHERE id = ?");
+            foreach ($order as $i => $id) {
+                $stmt->execute([$i, (int)$id]);
+            }
+        }
+        $response->getBody()->write(json_encode(['success' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $group->post('/categories/{id}', function (Request $request, Response $response, array $args) use ($db) {
+        $id = (int)$args['id'];
+        $data = $request->getParsedBody() ?? [];
+        try {
+            $db->updateCategory($id, $data);
+            $cat = $db->getCategoryById($id);
+            $response->getBody()->write(json_encode($cat, JSON_UNESCAPED_UNICODE));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\PDOException $e) {
+            $response->getBody()->write(json_encode(['error' => 'Slug уже существует']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+    });
+
+    $group->delete('/categories/{id}', function (Request $request, Response $response, array $args) use ($db) {
+        $id = (int)$args['id'];
+        $result = $db->deleteCategory($id);
+        if ($result === true) {
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+        $response->getBody()->write(json_encode(['error' => $result]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+    });
+
+    // --- Review images ---
+
+    $group->get('/reviews', function (Request $request, Response $response) use ($db) {
+        $stored = $db->getSettingJson('review_images');
+        if (is_array($stored)) {
+            $response->getBody()->write(json_encode($stored, JSON_UNESCAPED_UNICODE));
+        } else {
+            // Fallback: scan directory
+            $reviewsDir = __DIR__ . '/uploads/reviews/';
+            $images = [];
+            if (is_dir($reviewsDir)) {
+                foreach (scandir($reviewsDir) as $f) {
+                    if (preg_match('/\.(jpe?g|png|webp)$/i', $f)) $images[] = $f;
+                }
+                natsort($images);
+                $images = array_values($images);
+            }
+            $response->getBody()->write(json_encode($images, JSON_UNESCAPED_UNICODE));
+        }
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $group->post('/reviews', function (Request $request, Response $response) use ($db, $config) {
+        $files = $request->getUploadedFiles();
+        $uploaded = [];
+        $reviewFiles = $files['images'] ?? [];
+        if (!is_array($reviewFiles)) $reviewFiles = [$reviewFiles];
+
+        $reviewsDir = __DIR__ . '/uploads/reviews/';
+        if (!is_dir($reviewsDir)) mkdir($reviewsDir, 0755, true);
+
+        foreach (array_slice($reviewFiles, 0, 20) as $file) {
+            if ($file->getError() !== UPLOAD_ERR_OK) continue;
+
+            $stream = $file->getStream();
+            $tmpPath = tempnam(sys_get_temp_dir(), 'ragefill_rev_');
+            file_put_contents($tmpPath, $stream);
+
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $realMime = $finfo->file($tmpPath);
+            if (!in_array($realMime, $config['allowed_types'], true)) {
+                unlink($tmpPath);
+                continue;
+            }
+            $imageInfo = @getimagesize($tmpPath);
+            if ($imageInfo === false) { unlink($tmpPath); continue; }
+
+            $filename = bin2hex(random_bytes(16)) . '.webp';
+
+            // Convert to WebP without square crop
+            $src = match ($realMime) {
+                'image/jpeg' => @imagecreatefromjpeg($tmpPath),
+                'image/png' => @imagecreatefrompng($tmpPath),
+                'image/webp' => @imagecreatefromwebp($tmpPath),
+                default => false,
+            };
+            if ($src) {
+                $w = imagesx($src);
+                $h = imagesy($src);
+                $maxW = 1200;
+                if ($w > $maxW) {
+                    $newH = (int)round($h * $maxW / $w);
+                    $dst = imagecreatetruecolor($maxW, $newH);
+                    imagealphablending($dst, false);
+                    imagesavealpha($dst, true);
+                    imagecopyresampled($dst, $src, 0, 0, 0, 0, $maxW, $newH, $w, $h);
+                    imagedestroy($src);
+                    $src = $dst;
+                }
+                imagewebp($src, $reviewsDir . $filename, 85);
+                imagedestroy($src);
+                unlink($tmpPath);
+            } else {
+                rename($tmpPath, $reviewsDir . $filename);
+            }
+            chmod($reviewsDir . $filename, 0644);
+            $uploaded[] = $filename;
+        }
+
+        // Update stored list
+        $stored = $db->getSettingJson('review_images') ?? [];
+        if (!is_array($stored)) {
+            // First time: migrate from directory scan
+            $stored = [];
+            if (is_dir($reviewsDir)) {
+                foreach (scandir($reviewsDir) as $f) {
+                    if (preg_match('/\.(jpe?g|png|webp)$/i', $f) && !in_array($f, $uploaded)) $stored[] = $f;
+                }
+                natsort($stored);
+                $stored = array_values($stored);
+            }
+        }
+        $stored = array_merge($stored, $uploaded);
+        $db->setSettingJson('review_images', $stored);
+
+        $response->getBody()->write(json_encode(['success' => true, 'images' => $stored], JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $group->delete('/reviews/{filename}', function (Request $request, Response $response, array $args) use ($db) {
+        $filename = basename($args['filename']);
+        $path = __DIR__ . '/uploads/reviews/' . $filename;
+        if (is_file($path)) @unlink($path);
+
+        $stored = $db->getSettingJson('review_images') ?? [];
+        $stored = array_values(array_filter($stored, fn($f) => $f !== $filename));
+        $db->setSettingJson('review_images', $stored);
+
+        $response->getBody()->write(json_encode(['success' => true, 'images' => $stored], JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $group->post('/reviews/reorder', function (Request $request, Response $response) use ($db) {
+        $data = $request->getParsedBody() ?? [];
+        $order = $data['order'] ?? [];
+        if (is_array($order)) {
+            $db->setSettingJson('review_images', array_values($order));
+        }
+        $response->getBody()->write(json_encode(['success' => true]));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
 })->add($auth);
 
 // --- SEO: robots.txt ---
@@ -335,6 +688,19 @@ $app->get('/catalog', function (Request $request, Response $response) use ($db, 
     $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
     $html = str_replace('{{CONTACT_TG}}', $contactTg, $html);
 
+    // Dynamic category chips/sidebar from DB
+    $cats = $db->getAllCategories();
+    $categoryChips = '';
+    $categorySidebar = '';
+    foreach ($cats as $cat) {
+        $catSlug = htmlspecialchars($cat['slug'], ENT_QUOTES, 'UTF-8');
+        $catName = htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8');
+        $categoryChips .= '<button class="toolbar__chip" data-category="' . $catSlug . '" role="radio" aria-checked="false">' . $catName . '</button>' . "\n";
+        $categorySidebar .= '<button class="catalog-sidebar__option" data-category="' . $catSlug . '" role="radio" aria-checked="false"><span class="catalog-sidebar__radio"></span>' . $catName . '</button>' . "\n";
+    }
+    $html = str_replace('{{CATEGORY_CHIPS}}', $categoryChips, $html);
+    $html = str_replace('{{CATEGORY_SIDEBAR}}', $categorySidebar, $html);
+
     $ssrHtml = '';
     foreach ($sauces as $sauce) {
         $ssrHtml .= $seo->renderProductCard($sauce);
@@ -344,6 +710,7 @@ $app->get('/catalog', function (Request $request, Response $response) use ($db, 
     // Inject sauce data for JS to avoid a duplicate API fetch on initial load
     $ssrJson = json_encode($sauces, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
     $html = str_replace('</body>', "<script>window.__SSR_SAUCES__={$ssrJson};</script>\n</body>", $html);
+    $html = replace_asset_versions($html);
 
     $response->getBody()->write($html);
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
@@ -351,6 +718,7 @@ $app->get('/catalog', function (Request $request, Response $response) use ($db, 
 
 $app->get('/admin', function (Request $request, Response $response) {
     $html = file_get_contents(__DIR__ . '/admin.html');
+    $html = replace_asset_versions($html);
     $response->getBody()->write($html);
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
@@ -359,8 +727,8 @@ $app->get('/admin', function (Request $request, Response $response) {
 
 // --- Privacy Policy ---
 
-$app->get('/privacy', function (Request $request, Response $response) use ($config, $seo) {
-    $html = renderPrivacyPage($config, $seo);
+$app->get('/privacy', function (Request $request, Response $response) use ($config, $seo, $db) {
+    $html = renderPrivacyPage($config, $seo, $db);
     $response->getBody()->write($html);
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
@@ -474,56 +842,6 @@ function optimizeImage(string $tmpPath, string $mime, array $config): ?string
     return $outPath;
 }
 
-function renderFooter(array $config): string
-{
-    $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
-    $year = date('Y');
-    return <<<HTML
-    <footer class="site-footer">
-        <div class="site-footer__inner">
-            <div class="site-footer__brand">
-                <div class="site-footer__logo"><span class="site-footer__logo-rage">RAGE</span> <span class="site-footer__logo-fill">FILL</span></div>
-                <div class="site-footer__text">Острые соусы ручной работы, Беларусь</div>
-            </div>
-            <div class="site-footer__contact">
-                <h4 class="site-footer__heading">Контакты</h4>
-                <nav class="site-footer__links" aria-label="Контакты">
-                    <a href="https://t.me/{$contactTg}" target="_blank" rel="noopener noreferrer">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>
-                        Telegram
-                    </a>
-                    <a href="https://instagram.com/rage_fill" target="_blank" rel="noopener noreferrer">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                        Instagram
-                    </a>
-                </nav>
-            </div>
-            <div class="site-footer__nav">
-                <h4 class="site-footer__heading">Навигация</h4>
-                <nav class="site-footer__links" aria-label="Навигация">
-                    <a href="/">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                        Главная
-                    </a>
-                    <a href="/catalog">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-                        Каталог
-                    </a>
-                </nav>
-            </div>
-            <div class="site-footer__about">
-                <h4 class="site-footer__heading">О продукте</h4>
-                <p class="site-footer__about-text">Все соусы изготавливаются вручную из свежих перцев. Для заказа свяжитесь с нами через Telegram.</p>
-            </div>
-        </div>
-        <div class="site-footer__bottom">
-            <div class="site-footer__copy">&copy; {$year} RAGE FILL. Все права защищены.</div>
-            <a href="/privacy" class="site-footer__privacy-link">Политика конфиденциальности</a>
-        </div>
-    </footer>
-    HTML;
-}
-
 function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database $db): string
 {
     $name = htmlspecialchars($sauce['name'], ENT_QUOTES, 'UTF-8');
@@ -574,24 +892,24 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database
 
     $subtitleHtml = $subtitle ? '<p class="product-page__subtitle">' . $subtitle . '</p>' : '';
 
+    // Category label from DB (needed for title)
+    $category = $sauce['category'] ?? 'sauce';
+    $allCategories = $db->getAllCategories();
+    $categoryLabel = 'Соус';
+    foreach ($allCategories as $cat) {
+        if ($cat['slug'] === $category) { $categoryLabel = $cat['name']; break; }
+    }
+
     $stockText = $inStock ? 'В наличии' : 'Нет в наличии';
     $stockClass = $inStock ? 'in' : 'out';
 
-    $year = date('Y');
     $baseUrl = rtrim($config['base_url'], '/');
     $sauceSlug = htmlspecialchars($sauce['slug'] ?? (string)$id, ENT_QUOTES, 'UTF-8');
     $url = $baseUrl . '/sauce/' . $sauceSlug;
     $metaTags = $seo->productMeta($sauce);
     $jsonLd = $seo->productJsonLd($sauce);
     $breadcrumbLd = $seo->breadcrumbJsonLd($sauce['name'], $sauceSlug);
-    $category = $sauce['category'] ?? 'sauce';
-    $titleSuffix = match ($category) {
-        'gift_set' => 'подарочный набор RAGE FILL',
-        'pickled_pepper' => 'маринованные перцы RAGE FILL',
-        'spicy_peanut' => 'острый арахис RAGE FILL',
-        'spice' => 'специи RAGE FILL',
-        default => 'острый соус RAGE FILL',
-    };
+    $titleSuffix = mb_strtolower($categoryLabel, 'UTF-8') . ' RAGE FILL';
     $title = htmlspecialchars($sauce['name'] . ' — ' . $titleSuffix, ENT_QUOTES, 'UTF-8');
 
     // Clean description HTML for display (strip all attributes to prevent XSS)
@@ -623,19 +941,6 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database
 
     $heatLabels = [1 => 'Лёгкая', 2 => 'Умеренная', 3 => 'Средняя', 4 => 'Сильная', 5 => 'Экстремальная'];
     $heatLabel = $heatLabels[$heat] ?? '';
-
-    // Category label
-    $categoryMap = [
-        'sauce' => 'Соус',
-        'gift_set' => 'Подарочный набор',
-        'pickled_pepper' => 'Маринованный перец',
-        'spicy_peanut' => 'Острый арахис',
-        'spice' => 'Специи',
-    ];
-    $category = $sauce['category'] ?? 'sauce';
-    $categoryLabel = $categoryMap[$category] ?? 'Соус';
-
-    $footer = renderFooter($config);
 
     // Related products: sorted by closest heat level, excluding current, limit 4
     $allActive = $db->getAllSauces(true);
@@ -691,391 +996,46 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database
     $ctaText = $inStock ? 'Написать продавцу' : 'Узнать о наличии';
     $ctaIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>';
 
-    return <<<HTML
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-        <title>{$title}</title>
-        {$metaTags}
-        <link rel="alternate" hreflang="ru-BY" href="{$url}">
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
-        <meta name="theme-color" content="#0a0a0a">
-        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
-        <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
-        {$jsonLd}
-        {$breadcrumbLd}
-    </head>
-    <body>
-        <header class="header header--catalog">
-            <div class="header__inner">
-                <a href="/" class="header__logo-link" aria-label="На главную"><div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div></a>
-                <nav class="header__nav browser-only-link" id="main-nav">
-                    <a href="/" class="header__nav-link">Главная</a>
-                    <a href="/catalog" class="header__nav-link">Каталог</a>
-                    <a href="/#faq" class="header__nav-link">Частые вопросы</a>
-                </nav>
-                <div class="header__actions">
-                    <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
-                        <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                        <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                    </button>
-                    <button class="burger-btn browser-only-link" id="burger-btn" aria-label="Меню" aria-expanded="false">
-                        <span class="burger-btn__line"></span>
-                        <span class="burger-btn__line"></span>
-                        <span class="burger-btn__line"></span>
-                    </button>
-                </div>
-            </div>
-        </header>
+    // Use custom SEO title if set
+    $customTitle = trim($sauce['meta_title'] ?? '');
+    if ($customTitle !== '') {
+        $title = htmlspecialchars($customTitle, ENT_QUOTES, 'UTF-8');
+    }
 
-        <main>
-        <article class="product-page">
-            <nav class="product-page__breadcrumb browser-only-link" aria-label="Навигация">
-                <a href="/">Главная</a>
-                <span class="product-page__breadcrumb-sep" aria-hidden="true">
-                    <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </span>
-                <a href="/catalog">Каталог</a>
-                <span class="product-page__breadcrumb-sep" aria-hidden="true">
-                    <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </span>
-                <span>{$name}</span>
-            </nav>
+    // Footer vars
+    $footerVars = getFooterVars($db);
+    $footerTagline = $footerVars['footerTagline'];
+    $footerAbout = $footerVars['footerAbout'];
 
-            <div class="product-page__main">
-                <div class="product-page__gallery">
-                    <div class="product-page__hero">
-                        {$image}
-                    </div>
-                    {$thumbsHtml}
-                </div>
-
-                <div class="product-page__details">
-                    <span class="product-page__category">{$categoryLabel}</span>
-                    <h1 class="product-page__name">{$name}</h1>
-                    {$subtitleHtml}
-
-                    <div class="product-page__meta">
-                        <div class="product-page__stock product-page__stock--{$stockClass}">
-                            <span class="product-page__stock-dot"></span>
-                            {$stockText}
-                        </div>
-                        {$volumeHtml}
-                    </div>
-
-                    <div class="product-page__heat-block">
-                        <div class="product-page__heat-header">
-                            <span class="product-page__heat-title">Острота</span>
-                            <span class="product-page__heat-value">{$heat}/5 — {$heatLabel}</span>
-                        </div>
-                        <div class="heat-bar" aria-label="Уровень остроты {$heat} из 5">
-                            {$heatBar}
-                        </div>
-                    </div>
-
-                    <div class="product-page__divider"></div>
-
-                    {$descSection}
-
-                    {$compSection}
-
-                    <div class="product-page__actions">
-                        <a href="https://t.me/{$contactTg}" class="product-page__cta" target="_blank" rel="noopener">
-                            {$ctaIcon}
-                            <span>{$ctaText}</span>
-                        </a>
-                        <a href="/catalog" class="product-page__back">← Вернуться в каталог</a>
-                    </div>
-                </div>
-            </div>
-        </article>
-
-        {$relatedHtml}
-
-        </main>
-
-        {$footer}
-
-        <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=3.0.0" data-cfasync="false"></script>
-        <script data-cfasync="false">
-            const _tgRaw = window.Telegram?.WebApp;
-            const tg = (_tgRaw && _tgRaw.initData) ? _tgRaw : null;
-            if (tg) {
-                tg.ready();
-                tg.expand();
-                document.body.classList.add('tg-theme', 'tg-mode');
-                if (tg.colorScheme === 'dark') document.body.classList.add('tg-dark');
-                tg.BackButton.show();
-                tg.BackButton.onClick(() => { window.location.href = '/catalog'; });
-            } else {
-                document.body.classList.add('browser-mode');
-            }
-
-            // Theme toggle
-            (function() {
-                const saved = localStorage.getItem('ragefill-theme');
-                if (saved === 'dark') document.body.classList.add('tg-dark');
-                else if (saved === 'light') document.body.classList.remove('tg-dark');
-                const btn = document.getElementById('theme-toggle');
-                if (!btn) return;
-                btn.addEventListener('click', () => {
-                    const isDark = document.body.classList.toggle('tg-dark');
-                    localStorage.setItem('ragefill-theme', isDark ? 'dark' : 'light');
-                });
-            })();
-
-            // Burger menu
-            (function(){
-                var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
-                if(!btn||!nav)return;
-                btn.addEventListener('click',function(){
-                    var open=nav.classList.toggle('open');
-                    btn.classList.toggle('open',open);
-                    btn.setAttribute('aria-expanded',String(open));
-                    document.body.classList.toggle('menu-open',open);
-                });
-                nav.querySelectorAll('a').forEach(function(a){
-                    a.addEventListener('click',function(){
-                        nav.classList.remove('open');btn.classList.remove('open');
-                        btn.setAttribute('aria-expanded','false');
-                        document.body.classList.remove('menu-open');
-                    });
-                });
-            })();
-
-            // Sticky gallery offset (match header height)
-            (function() {
-                var header = document.querySelector('.header');
-                var gallery = document.querySelector('.product-page__gallery');
-                if (!header || !gallery) return;
-                function update() { gallery.style.top = (header.offsetHeight + 16) + 'px'; }
-                update();
-                window.addEventListener('resize', update);
-            })();
-
-            // Gallery thumbnails + Lightbox
-            (function() {
-                var thumbs = document.querySelectorAll('.product-page__thumb');
-                var main = document.getElementById('gallery-main-img');
-                var currentIdx = 0;
-                if (!main) return;
-
-                var gallery = [];
-                try { gallery = JSON.parse(main.dataset.gallery || '[]'); } catch(e) {}
-
-                // Thumbnail clicks
-                thumbs.forEach(function(t) {
-                    t.addEventListener('click', function() {
-                        currentIdx = parseInt(t.dataset.index) || 0;
-                        main.style.opacity = '0';
-                        setTimeout(function() { main.src = t.dataset.src; main.style.opacity = '1'; }, 150);
-                        thumbs.forEach(function(x) { x.classList.remove('active'); });
-                        t.classList.add('active');
-                    });
-                });
-
-                if (gallery.length === 0) return;
-
-                function syncThumb(i) {
-                    currentIdx = i;
-                    main.src = gallery[i];
-                    thumbs.forEach(function(x) { x.classList.remove('active'); });
-                    if (thumbs[i]) thumbs[i].classList.add('active');
-                }
-
-                // Open lightbox on main image click
-                main.addEventListener('click', function() {
-                    Lightbox.open({ images: gallery, startIndex: currentIdx, onNavigate: syncThumb });
-                });
-                main.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        Lightbox.open({ images: gallery, startIndex: currentIdx, onNavigate: syncThumb });
-                    }
-                });
-            })();
-        </script>
-    </body>
-    </html>
-    HTML;
+    $hreflangUrl = $url;
+    return render('product.php', compact(
+        'title', 'metaTags', 'hreflangUrl', 'jsonLd', 'breadcrumbLd',
+        'name', 'subtitleHtml', 'categoryLabel', 'image', 'thumbsHtml',
+        'stockClass', 'stockText', 'volumeHtml', 'heat', 'heatLabel', 'heatBar',
+        'descSection', 'compSection', 'contactTg', 'ctaText', 'ctaIcon', 'relatedHtml',
+        'footerTagline', 'footerAbout'
+    ));
 }
 
 function renderProductNotFound(): string
 {
-    return <<<HTML
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-        <title>Товар не найден — RAGEFILL</title>
-        <meta name="robots" content="noindex">
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
-        <meta name="theme-color" content="#0a0a0a">
-        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
-        <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
-    </head>
-    <body>
-        <header class="header">
-            <div class="header__inner">
-                <a href="/" class="header__logo-link" aria-label="На главную">
-                    <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
-                </a>
-                <div class="header__actions">
-                    <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
-                        <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                        <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                    </button>
-                </div>
-            </div>
-        </header>
-        <main>
-            <div class="empty-state" style="padding-top: 80px;">
-                <div class="empty-state__icon"><img src="/uploads/pepper.svg" alt="" width="48" height="48"></div>
-                <div class="empty-state__text">Товар не найден</div>
-                <div class="empty-state__hint">Возможно, он был удалён или скрыт</div>
-                <a href="/catalog" class="empty-state__btn">Вернуться в каталог</a>
-            </div>
-        </main>
-        <script data-cfasync="false">
-            var tg = window.Telegram && window.Telegram.WebApp;
-            if (tg && tg.initData) {
-                tg.ready(); tg.expand();
-                document.body.classList.add('tg-theme','tg-mode');
-                if (tg.colorScheme==='dark') document.body.classList.add('tg-dark');
-                tg.BackButton.show();
-                tg.BackButton.onClick(function(){ window.location.href='/'; });
-            } else {
-                document.body.classList.add('browser-mode');
-            }
-            (function(){
-                var saved=localStorage.getItem('ragefill-theme');
-                if(saved==='dark') document.body.classList.add('tg-dark');
-                var btn=document.getElementById('theme-toggle');
-                if(!btn) return;
-                btn.addEventListener('click',function(){
-                    var isDark=document.body.classList.toggle('tg-dark');
-                    localStorage.setItem('ragefill-theme',isDark?'dark':'light');
-                });
-            })();
-        </script>
-    </body>
-    </html>
-    HTML;
+    return render('product-404.php', ['title' => 'Товар не найден — RAGEFILL']);
 }
 
-function renderPrivacyPage(array $config, SeoHelper $seo): string
+function renderPrivacyPage(array $config, SeoHelper $seo, Database $db): string
 {
     $baseUrl = rtrim($config['base_url'], '/');
     $title = 'Политика конфиденциальности — RAGE FILL';
     $desc = 'Политика конфиденциальности интернет-магазина острых соусов RAGE FILL.';
     $url = $baseUrl . '/privacy';
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
-    $footer = renderFooter($config);
     $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
 
-    return <<<HTML
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-        <title>{$title}</title>
-        {$metaTags}
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
-        <meta name="theme-color" content="#0a0a0a">
-        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
-    </head>
-    <body class="browser-mode">
-        <header class="header">
-            <div class="header__inner">
-                <a href="/" class="header__logo-link" aria-label="На главную">
-                    <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
-                </a>
-                <nav class="header__nav" id="main-nav">
-                    <a href="/catalog" class="header__nav-link">Каталог</a>
-                    <a href="/#benefits" class="header__nav-link">О нас</a>
-                    <a href="/#faq" class="header__nav-link">Частые вопросы</a>
-                </nav>
-                <div class="header__actions">
-                    <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
-                        <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                        <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                    </button>
-                    <button class="burger-btn" id="burger-btn" aria-label="Меню" aria-expanded="false">
-                        <span class="burger-btn__line"></span>
-                        <span class="burger-btn__line"></span>
-                        <span class="burger-btn__line"></span>
-                    </button>
-                </div>
-            </div>
-        </header>
+    $footerVars = getFooterVars($db);
+    $footerTagline = $footerVars['footerTagline'];
+    $footerAbout = $footerVars['footerAbout'];
 
-        <nav class="catalog-breadcrumb" aria-label="Навигация">
-            <a href="/">Главная</a>
-            <span class="catalog-breadcrumb__sep" aria-hidden="true">
-                <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span>Политика конфиденциальности</span>
-        </nav>
-
-        <main>
-            <article class="privacy-page" style="max-width: 720px; margin: 0 auto; padding: 32px 20px 40px;">
-                <h1 style="font-family: var(--font-display); font-size: 2rem; margin-bottom: 24px;">Политика конфиденциальности</h1>
-
-                <p>Настоящая политика конфиденциальности описывает, как RAGE FILL обрабатывает информацию при использовании нашего сайта и Telegram-бота.</p>
-
-                <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin: 24px 0 12px;">Какие данные мы собираем</h2>
-                <ul style="padding-left: 20px; margin-bottom: 16px;">
-                    <li>Имя пользователя Telegram при оформлении заказа через бота</li>
-                    <li>Адрес доставки, указанный вами при заказе</li>
-                    <li>Техническая информация (IP-адрес, тип браузера) при посещении сайта</li>
-                </ul>
-
-                <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin: 24px 0 12px;">Как мы используем данные</h2>
-                <p>Данные используются исключительно для обработки и доставки заказов, а также для связи с вами по вопросам заказа. Мы не передаём ваши данные третьим лицам и не используем их в рекламных целях.</p>
-
-                <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin: 24px 0 12px;">Контакты</h2>
-                <p>По вопросам конфиденциальности обращайтесь в Telegram: <a href="https://t.me/{$contactTg}">@{$contactTg}</a></p>
-            </article>
-        </main>
-
-        {$footer}
-
-        <script data-cfasync="false">
-            (function(){
-                var saved=localStorage.getItem('ragefill-theme');
-                if(saved==='dark') document.body.classList.add('tg-dark');
-                var btn=document.getElementById('theme-toggle');
-                if(!btn) return;
-                btn.addEventListener('click',function(){
-                    var isDark=document.body.classList.toggle('tg-dark');
-                    localStorage.setItem('ragefill-theme',isDark?'dark':'light');
-                });
-            })();
-            (function(){
-                var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
-                if(!btn||!nav)return;
-                btn.addEventListener('click',function(){
-                    var open=nav.classList.toggle('open');
-                    btn.classList.toggle('open',open);
-                    btn.setAttribute('aria-expanded',String(open));
-                });
-            })();
-        </script>
-    </body>
-    </html>
-    HTML;
+    return render('privacy.php', compact('title', 'metaTags', 'contactTg', 'footerTagline', 'footerAbout'));
 }
 
 function sanitizeHtml(string $html): string
@@ -1087,6 +1047,15 @@ function sanitizeHtml(string $html): string
     $clean = preg_replace('/<(\w+)\s+[^>]*>/i', '<$1>', $clean);
 
     return $clean;
+}
+
+function getFooterVars(Database $db): array
+{
+    $settings = $db->getAllSettings();
+    return [
+        'footerTagline' => htmlspecialchars($settings['footer_tagline'] ?? 'Острые соусы ручной работы, Беларусь', ENT_QUOTES, 'UTF-8'),
+        'footerAbout' => htmlspecialchars($settings['footer_about'] ?? 'Все соусы изготавливаются вручную из свежих перцев. Для заказа свяжитесь с нами через Telegram.', ENT_QUOTES, 'UTF-8'),
+    ];
 }
 
 function deleteImageFile(?string $image, array $config): void
@@ -1111,11 +1080,14 @@ function deleteImageFile(?string $image, array $config): void
 
 function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): string
 {
-    $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
-    $baseUrl = rtrim($config['base_url'], '/');
-    $year = date('Y');
-    $footer = renderFooter($config);
+    // Load site settings from DB (with fallbacks)
+    $siteSettings = $db->getAllSettings();
 
+    $contactTg = htmlspecialchars(
+        $siteSettings['contact_telegram'] ?? $config['contact_telegram'] ?? 'rage_fill',
+        ENT_QUOTES, 'UTF-8'
+    );
+    $baseUrl = rtrim($config['base_url'], '/');
     // SEO
     $title = 'RAGE FILL — Острые соусы ручной работы | Минск, Беларусь';
     $desc = 'Острые соусы ручной работы RAGE FILL. Собственные перцы, от лёгкой до экстремальной остроты, натуральные ингредиенты. Каталог, доставка по Беларуси.';
@@ -1123,9 +1095,11 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
     $metaTags = $seo->buildAboutMeta($title, $desc, $url);
 
-    // FAQ JSON-LD
+    // FAQ — from DB or default
+    $faqRaw = $siteSettings['faq'] ?? null;
+    $faqItems = $faqRaw !== null ? (json_decode($faqRaw, true) ?? DEFAULT_FAQ) : DEFAULT_FAQ;
     $faqLd = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => []];
-    foreach (ABOUT_FAQ as $item) {
+    foreach ($faqItems as $item) {
         $faqLd['mainEntity'][] = [
             '@type' => 'Question',
             'name' => $item['question'],
@@ -1138,13 +1112,27 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $orgJsonLd = $seo->organizationJsonLd();
     $websiteJsonLd = $seo->websiteJsonLd();
 
-    // Featured products (is_hit=1, limit 4)
+    // Featured products — manual selection or auto (is_hit=1)
     $allSauces = $db->getAllSauces(true);
-    $featured = array_filter($allSauces, fn($s) => ($s['is_hit'] ?? 0) == 1);
-    $featured = array_slice($featured, 0, 4);
-    if (count($featured) < 3) {
-        $featured = array_slice($allSauces, 0, 4);
+    $featuredIds = $siteSettings['featured_product_ids'] ?? null;
+    if ($featuredIds !== null) {
+        $featuredIds = json_decode($featuredIds, true);
     }
+    if (is_array($featuredIds) && !empty($featuredIds)) {
+        $sauceMap = [];
+        foreach ($allSauces as $s) $sauceMap[$s['id']] = $s;
+        $featured = [];
+        foreach ($featuredIds as $fid) {
+            if (isset($sauceMap[$fid])) $featured[] = $sauceMap[$fid];
+        }
+    } else {
+        $featured = array_filter($allSauces, fn($s) => ($s['is_hit'] ?? 0) == 1);
+        $featured = array_slice($featured, 0, 4);
+        if (count($featured) < 3) {
+            $featured = array_slice($allSauces, 0, 4);
+        }
+    }
+    $featuredTitle = htmlspecialchars($siteSettings['featured_title'] ?? 'Популярное', ENT_QUOTES, 'UTF-8');
 
     $featuredHtml = '';
     foreach ($featured as $s) {
@@ -1180,25 +1168,23 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
     $featuredJson = json_encode(array_values($featured), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 
-    // Benefits
-    $benefits = [
-        ['icon' => '<img src="/uploads/pepper.svg" alt="" width="36" height="36">', 'title' => 'Собственные перцы', 'text' => 'Выращиваем острые перцы сами: Carolina Reaper, Apocalypse Scorpion, Habanero, Bhut Jolokia и другие.'],
-        ['icon' => '<img src="/uploads/branch.svg" alt="" width="36" height="36">', 'title' => 'Натуральный состав', 'text' => 'Готовим по авторским рецептам из натуральных ингредиентов. Без консервантов и красителей.'],
-        ['icon' => '<img src="/uploads/gift.svg" alt="" width="36" height="36">', 'title' => 'Идея для подарка', 'text' => 'Подарочные наборы на любой праздник — День рождения, 23 февраля, 8 марта, юбилей.'],
-        ['icon' => '<img src="/uploads/fire.svg" alt="" width="36" height="36">', 'title' => 'Только честная острота', 'text' => 'Готовим соусы из натуральных сверхострых перцев без добавления экстракта капсаицина!'],
-        ['icon' => '<img src="/uploads/box.svg" alt="" width="36" height="36">', 'title' => 'Доставка по Беларуси', 'text' => ' Ускоренная отправка на следующий день после заказа. Белпочта, Европочта.'],
-        ['icon' => '<img src="/uploads/pizza.svg" alt="" width="36" height="36">', 'title' => 'Запоминающийся вкус', 'text' => 'Соусы, которые действительно жгут и запоминаются. Яркий вкус для мяса, пиццы, бургеров.'],
-    ];
+    // Benefits — from DB or default
+    $benefitsRaw = $siteSettings['benefits'] ?? null;
+    $benefits = $benefitsRaw !== null ? (json_decode($benefitsRaw, true) ?? DEFAULT_BENEFITS) : DEFAULT_BENEFITS;
 
     $benefitsHtml = '';
     $bIdx = 0;
     foreach ($benefits as $b) {
         $delay = $bIdx * 100;
+        $iconFile = htmlspecialchars($b['icon'] ?? 'pepper.svg', ENT_QUOTES, 'UTF-8');
+        $icon = '<img src="/uploads/' . $iconFile . '" alt="" width="36" height="36">';
+        $bTitle = htmlspecialchars($b['title'] ?? '', ENT_QUOTES, 'UTF-8');
+        $bText = htmlspecialchars($b['text'] ?? '', ENT_QUOTES, 'UTF-8');
         $benefitsHtml .= <<<HTML
             <div class="benefit-card" data-aos="fade-up" data-aos-delay="{$delay}">
-                <div class="benefit-card__icon">{$b['icon']}</div>
-                <h3 class="benefit-card__title">{$b['title']}</h3>
-                <p class="benefit-card__text">{$b['text']}</p>
+                <div class="benefit-card__icon">{$icon}</div>
+                <h3 class="benefit-card__title">{$bTitle}</h3>
+                <p class="benefit-card__text">{$bText}</p>
             </div>
         HTML;
         $bIdx++;
@@ -1206,7 +1192,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
 
     // FAQ
     $faqHtml = '';
-    foreach (ABOUT_FAQ as $item) {
+    foreach ($faqItems as $item) {
         $q = htmlspecialchars($item['question'], ENT_QUOTES, 'UTF-8');
         $a = $item['answer'];
         $faqHtml .= <<<HTML
@@ -1217,15 +1203,21 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         HTML;
     }
 
-    // Reviews
+    // Reviews — from DB setting or directory scan fallback
+    $storedReviews = $db->getSettingJson('review_images');
     $reviewsDir = __DIR__ . '/uploads/reviews/';
-    $reviewImages = [];
-    if (is_dir($reviewsDir)) {
-        foreach (scandir($reviewsDir) as $f) {
-            if (preg_match('/\.(jpe?g|png|webp)$/i', $f)) $reviewImages[] = $f;
+    if (is_array($storedReviews) && !empty($storedReviews)) {
+        // Filter to only existing files
+        $reviewImages = array_values(array_filter($storedReviews, fn($f) => is_file($reviewsDir . basename($f))));
+    } else {
+        $reviewImages = [];
+        if (is_dir($reviewsDir)) {
+            foreach (scandir($reviewsDir) as $f) {
+                if (preg_match('/\.(jpe?g|png|webp)$/i', $f)) $reviewImages[] = $f;
+            }
+            natsort($reviewImages);
+            $reviewImages = array_values($reviewImages);
         }
-        natsort($reviewImages);
-        $reviewImages = array_values($reviewImages);
     }
 
     $reviewsHtml = '';
@@ -1247,205 +1239,52 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     }
     $reviewSrcsJson = htmlspecialchars(json_encode($reviewSrcs), ENT_QUOTES, 'UTF-8');
 
-    return <<<HTML
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-        <title>{$title}</title>
-        {$metaTags}
-        <link rel="alternate" hreflang="ru-BY" href="{$url}">
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
-        <meta name="theme-color" content="#0a0a0a">
-        <link rel="stylesheet" href="/css/style.css?v=4.1.0">
-        <link rel="stylesheet" href="/css/aos.css?v=2.3.4">
-        {$faqJsonLd}
-        {$orgJsonLd}
-        {$websiteJsonLd}
-    </head>
-    <body class="browser-mode home-page">
+    // Hero content — from DB or defaults
+    $heroTagline = htmlspecialchars($siteSettings['hero_tagline'] ?? 'Острые соусы ручной работы, маринованные перцы, подарочные наборы и жгучие закуски', ENT_QUOTES, 'UTF-8');
+    $heroDesc = htmlspecialchars($siteSettings['hero_description'] ?? 'Идеальный выбор для мяса, пиццы, бургеров и закусок <br> Доставка по Минску и Беларуси', ENT_QUOTES, 'UTF-8');
+    // For description, allow <br> tag
+    $heroDesc = str_replace('&lt;br&gt;', '<br>', $heroDesc);
+    $heroBtnPrimary = htmlspecialchars($siteSettings['hero_btn_primary'] ?? 'Смотреть каталог', ENT_QUOTES, 'UTF-8');
+    $heroBtnSecondary = htmlspecialchars($siteSettings['hero_btn_secondary'] ?? 'Написать нам', ENT_QUOTES, 'UTF-8');
 
-        <header class="header header--home">
-            <div class="header__inner">
-                <a href="/" class="header__logo-link" aria-label="На главную"><div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div></a>
-                <nav class="header__nav" id="main-nav">
-                    <a href="/catalog" class="header__nav-link">Каталог</a>
-                    <a href="#benefits" class="header__nav-link">О нас</a>
-                    <a href="#faq" class="header__nav-link">Частые вопросы</a>
-                    <a href="https://t.me/{$contactTg}" class="header__nav-link header__nav-link--cta" target="_blank" rel="noopener">Написать нам</a>
-                </nav>
-                <div class="header__desktop-search">
-                    <svg class="header__search-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
-                        <path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                    </svg>
-                    <label for="home-search-input" class="visually-hidden">Поиск по каталогу</label>
-                    <input type="text" class="header__search-input" id="home-search-input" placeholder="Поиск по каталогу..." autocomplete="off">
-                </div>
-                <div class="header__actions">
-                    <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
-                        <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                        <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                    </button>
-                    <button class="burger-btn" id="burger-btn" aria-label="Меню" aria-expanded="false">
-                        <span class="burger-btn__line"></span>
-                        <span class="burger-btn__line"></span>
-                        <span class="burger-btn__line"></span>
-                    </button>
-                </div>
+    // About text — from DB or default
+    $aboutText = $siteSettings['about_text'] ?? DEFAULT_ABOUT;
+
+    // Testimonials — from DB or default
+    $testimonialsRaw = $siteSettings['testimonials'] ?? null;
+    $testimonials = $testimonialsRaw !== null ? (json_decode($testimonialsRaw, true) ?? DEFAULT_TESTIMONIALS) : DEFAULT_TESTIMONIALS;
+    $testimonialsHtml = '';
+    foreach ($testimonials as $t) {
+        $tText = htmlspecialchars($t['text'] ?? '', ENT_QUOTES, 'UTF-8');
+        $tAuthor = htmlspecialchars($t['author'] ?? '', ENT_QUOTES, 'UTF-8');
+        $testimonialsHtml .= <<<HTML
+            <div class="home-testimonial">
+                <blockquote class="home-testimonial__text">&laquo;{$tText}&raquo;</blockquote>
+                <cite class="home-testimonial__author">— {$tAuthor}</cite>
             </div>
-        </header>
+        HTML;
+    }
 
-        <main>
+    $instagramReviewsUrl = $siteSettings['instagram_reviews_url'] ?? 'https://www.instagram.com/stories/highlights/18073628308388969/';
 
-        <!-- Hero -->
-        <section class="home-hero">
-            <div class="hero-liquid hero-liquid--left" aria-hidden="true"></div>
-            <div class="hero-liquid hero-liquid--right" aria-hidden="true"></div>
-            <div class="home-hero__inner">
-                <h1 class="home-hero__title" data-aos="fade-up">
-                    <span class="home-hero__title-rage">RAGE</span><span class="home-hero__title-fill">FILL</span>
-                   <!-- <span class="home-hero__title-sub">Острые соусы ручной работы</span> -->
-                </h1>
-                <p class="home-hero__tagline" data-aos="fade-up" data-aos-delay="100">Острые соусы ручной работы, маринованные перцы, подарочные наборы и жгучие закуски</p>
-                <p class="home-hero__desc" data-aos="fade-up" data-aos-delay="200">Идеальный выбор для мяса, пиццы, бургеров и закусок <br> Доставка по Минску и Беларуси</p>
-                <div class="home-hero__buttons" data-aos="fade-up" data-aos-delay="300">
-                    <a href="/catalog" class="home-hero__btn home-hero__btn--primary">Смотреть каталог</a>
-                    <a href="https://t.me/{$contactTg}" class="home-hero__btn home-hero__btn--secondary" target="_blank" rel="noopener">Написать нам</a>
-                </div>
-            </div>
-        </section>
+    // Section titles
+    $sectionTitleBenefits = htmlspecialchars($siteSettings['section_title_benefits'] ?? 'Почему выбирают нас', ENT_QUOTES, 'UTF-8');
+    $sectionTitleReviews = htmlspecialchars($siteSettings['section_title_reviews'] ?? 'Отзывы', ENT_QUOTES, 'UTF-8');
+    $sectionTitleFaq = htmlspecialchars($siteSettings['section_title_faq'] ?? 'Частые вопросы', ENT_QUOTES, 'UTF-8');
 
-        <!-- Featured Products -->
-        <section class="home-section home-featured-section">
-            <div class="home-container">
-                <h2 class="home-section__title" data-aos="fade-up">Популярное</h2>
-                <div class="home-featured">
-                    {$featuredHtml}
-                </div>
-                <div class="home-featured__more" data-aos="fade-up">
-                    <a href="/catalog" class="home-featured__more-link">Смотреть весь каталог →</a>
-                </div>
-            </div>
-        </section>
+    // Footer vars
+    $footerTagline = htmlspecialchars($siteSettings['footer_tagline'] ?? 'Острые соусы ручной работы, Беларусь', ENT_QUOTES, 'UTF-8');
+    $footerAbout = htmlspecialchars($siteSettings['footer_about'] ?? 'Все соусы изготавливаются вручную из свежих перцев. Для заказа свяжитесь с нами через Telegram.', ENT_QUOTES, 'UTF-8');
 
-        <!-- Benefits -->
-        <section class="home-section home-benefits-section" id="benefits">
-            <div class="home-container">
-                <h2 class="home-section__title" data-aos="fade-up">Почему выбирают нас</h2>
-                <div class="benefits-grid">
-                    {$benefitsHtml}
-                </div>
-            </div>
-        </section>
-
-        <!-- About -->
-        <section class="home-section home-about-section">
-            <div class="home-container">
-                <div class="home-about" data-aos="fade-up">
-                    <p>RAGE FILL — это острые соусы ручной работы из Беларуси. Все соусы готовим небольшими партиями по авторским рецептам. Используем только натуральные ингредиенты и собственные перцы (Carolina Reaper, Apocalypse Scorpion, Big Red Mama, Big Red Mama, 7 POT, Bhut Jolokia, Habanero, The Pain, Jalapeno и другие сорта).</p>
-                    <p>Помимо соусов в каталоге представлены подарочные наборы, маринованные перцы, острый арахис и специи. Широкий выбор вкусов и остроты: от легкой до экстремальной. Доставляем по Минску и всей Беларуси.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Reviews -->
-        <section class="home-section home-reviews-section">
-            <div class="home-container">
-                <h2 class="home-section__title" data-aos="fade-up">Отзывы</h2>
-                <div class="home-reviews-slider" data-aos="fade-up">
-                    <button class="home-reviews-slider__nav home-reviews-slider__nav--prev" id="reviews-prev" aria-label="Назад">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-                    </button>
-                    <div class="home-reviews" id="home-reviews" data-gallery="{$reviewSrcsJson}">
-                        {$reviewsHtml}
-                    </div>
-                    <button class="home-reviews-slider__nav home-reviews-slider__nav--next" id="reviews-next" aria-label="Вперёд">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
-                    </button>
-                </div>
-                <div class="home-testimonials" data-aos="fade-up">
-                    <div class="home-testimonial">
-                        <blockquote class="home-testimonial__text">&laquo;Попробовал ROWAN. Интересный такой вкус. Понравилось, что очень насыщенный. Наверное, можно с любой домашней едой использовать. TORMADO я еще раньше пробовал — его оставлю на стейки, с ним лучше всего.&raquo;</blockquote>
-                        <cite class="home-testimonial__author">— Anton Kavaliou</cite>
-                    </div>
-                    <div class="home-testimonial">
-                        <blockquote class="home-testimonial__text">&laquo;Пробовали ваши соусы) все ооочень вкусные и интересные!) Но! Agonix это ад адище 🔥🔥🔥 жарче чем в преисподней) очень крут) ❤️&raquo;</blockquote>
-                        <cite class="home-testimonial__author">— Наталья Голик</cite>
-                    </div>
-                    <div class="home-testimonial">
-                        <blockquote class="home-testimonial__text">&laquo;Решила я попробовать Cheron. Грамулечку. Это просто 🔥🔥🔥 Язык пылал. Муж в восторге! Спасибо большое. Мужу реально понравилось, сказал есть вкус. Я никакого вкуса не разобрала, я, мне кажется, обожгла язык 😱&raquo;</blockquote>
-                        <cite class="home-testimonial__author">— Света Комарова</cite>
-                    </div>
-                </div>
-                <div class="home-reviews__cta" data-aos="fade-up">
-                    <a href="https://www.instagram.com/stories/highlights/18073628308388969/" class="instagram-link" target="_blank" rel="noopener noreferrer">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                        Ещё отзывы в Instagram
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- FAQ -->
-        <section class="home-section home-faq-section" id="faq">
-            <div class="home-container">
-                <h2 class="home-section__title" data-aos="fade-up">Частые вопросы</h2>
-                <div class="faq__list">
-                    {$faqHtml}
-                </div>
-            </div>
-        </section>
-
-        </main>
-
-        <!-- Product modal (for featured cards on mobile) -->
-        <div id="home-modal-overlay" class="modal-overlay">
-            <div class="modal" id="home-modal" role="dialog" aria-modal="true">
-                <div class="modal__top-bar">
-                    <div class="modal__handle"></div>
-                    <button class="modal__close" id="home-modal-close" aria-label="Закрыть">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div class="modal__layout">
-                    <div id="home-modal-image" class="modal__image-wrapper"></div>
-                    <div class="modal__content">
-                        <h2 id="home-modal-name" class="modal__name"></h2>
-                        <div id="home-modal-subtitle" class="modal__subtitle"></div>
-                        <div id="home-modal-stock" class="modal__stock-badge modal__stock-badge--in">В наличии</div>
-                        <div id="home-modal-peppers" class="modal__peppers">
-                            <span class="modal__pepper-icons"></span>
-                            <span class="modal__pepper-label"></span>
-                        </div>
-                        <div id="home-modal-description" class="modal__description collapsed"></div>
-                        <button id="home-modal-read-more" class="modal__read-more" style="display:none">Читать далее</button>
-                        <div id="home-modal-composition" class="modal__info-block" style="display:none">
-                            <div class="modal__info-label">Состав</div>
-                            <div id="home-modal-composition-value" class="modal__info-value"></div>
-                        </div>
-                        <div id="home-modal-volume" style="display:none">
-                            <span id="home-modal-volume-value" class="modal__volume-pill"></span>
-                        </div>
-                        <button class="modal__contact-btn" id="home-modal-contact">Написать продавцу</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {$footer}
-
-        <script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/lightbox.js?v=3.0.0" data-cfasync="false"></script>
-        <script src="/js/slider.js?v=1.0.0" data-cfasync="false"></script>
-        <script src="/js/aos.js?v=2.3.4" data-cfasync="false"></script>
-        <script>window.__HOME_DATA__={sauces:{$featuredJson},contactTg:'{$contactTg}'};</script>
-        <script src="/js/home.js?v=1.0.0" data-cfasync="false"></script>
-    </body>
-    </html>
-    HTML;
+    $hreflangUrl = $url;
+    return render('home.php', compact(
+        'title', 'metaTags', 'hreflangUrl', 'faqJsonLd', 'orgJsonLd', 'websiteJsonLd',
+        'contactTg', 'featuredHtml', 'featuredJson', 'featuredTitle', 'benefitsHtml',
+        'faqHtml', 'reviewsHtml', 'reviewSrcsJson',
+        'heroTagline', 'heroDesc', 'heroBtnPrimary', 'heroBtnSecondary',
+        'aboutText', 'testimonialsHtml', 'instagramReviewsUrl',
+        'sectionTitleBenefits', 'sectionTitleReviews', 'sectionTitleFaq',
+        'footerTagline', 'footerAbout'
+    ));
 }
+

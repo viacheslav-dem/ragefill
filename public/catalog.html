@@ -9,9 +9,9 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
+    <link rel="stylesheet" href="/css/fonts.css?v={{V_FONTS}}">
     <meta name="theme-color" content="#0a0a0a">
-    <link rel="stylesheet" href="/css/style.css?v=4.1.0">
+    <link rel="stylesheet" href="/css/style.css?v={{V_STYLE}}">
     <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
 
 </head>
@@ -84,11 +84,7 @@
             <label class="toolbar__dropdown-label">Категория</label>
             <div class="toolbar__heat-chips" id="category-chips" role="radiogroup" aria-label="Фильтр по категории">
                 <button class="toolbar__chip active" data-category="all" role="radio" aria-checked="true">Все</button>
-                <button class="toolbar__chip" data-category="sauce" role="radio" aria-checked="false">Соусы</button>
-                <button class="toolbar__chip" data-category="gift_set" role="radio" aria-checked="false">Подарочные наборы</button>
-                <button class="toolbar__chip" data-category="pickled_pepper" role="radio" aria-checked="false">Маринованные перцы</button>
-                <button class="toolbar__chip" data-category="spicy_peanut" role="radio" aria-checked="false">Острый арахис</button>
-                <button class="toolbar__chip" data-category="spice" role="radio" aria-checked="false">Специи</button>
+                {{CATEGORY_CHIPS}}
             </div>
         </div>
         <div class="toolbar__dropdown-group">
@@ -128,26 +124,7 @@
                     <span class="catalog-sidebar__radio"></span>
                     Все категории
                 </button>
-                <button class="catalog-sidebar__option" data-category="sauce" role="radio" aria-checked="false">
-                    <span class="catalog-sidebar__radio"></span>
-                    Соусы
-                </button>
-                <button class="catalog-sidebar__option" data-category="gift_set" role="radio" aria-checked="false">
-                    <span class="catalog-sidebar__radio"></span>
-                    Подарочные наборы
-                </button>
-                <button class="catalog-sidebar__option" data-category="pickled_pepper" role="radio" aria-checked="false">
-                    <span class="catalog-sidebar__radio"></span>
-                    Маринованные перцы
-                </button>
-                <button class="catalog-sidebar__option" data-category="spicy_peanut" role="radio" aria-checked="false">
-                    <span class="catalog-sidebar__radio"></span>
-                    Острый арахис
-                </button>
-                <button class="catalog-sidebar__option" data-category="spice" role="radio" aria-checked="false">
-                    <span class="catalog-sidebar__radio"></span>
-                    Специи
-                </button>
+                {{CATEGORY_SIDEBAR}}
             </div>
         </div>
         <div class="catalog-sidebar__divider"></div>
@@ -313,8 +290,8 @@
     </div>
 </footer>
 
-<script src="/js/scroll-top.js?v=1.0.0" data-cfasync="false"></script>
-<script src="/js/catalog.js?v=2.0.0" data-cfasync="false"></script>
+<script src="/js/scroll-top.js?v={{V_SCROLL}}" data-cfasync="false"></script>
+<script src="/js/catalog.js?v={{V_CATALOG}}" data-cfasync="false"></script>
 <script data-cfasync="false">
 (function(){
     var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');

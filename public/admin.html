@@ -3,61 +3,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>RAGE FILL — Админка</title>
-    <link rel="stylesheet" href="/css/fonts.css?v=1.0.0">
-    <meta name="theme-color" content="#1a0f08">
-    <link rel="stylesheet" href="/css/style.css?v=1.9.0">
-
+    <title>RAGE FILL — Панель управления</title>
+    <link rel="stylesheet" href="/css/fonts.css?v={{V_FONTS}}">
+    <meta name="theme-color" content="#18150f" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f5f0eb" media="(prefers-color-scheme: light)">
+    <link rel="stylesheet" href="/css/style.css?v={{V_STYLE}}">
+    <link rel="stylesheet" href="/css/admin-cms.css?v={{V_STYLE}}">
 </head>
-<body>
+<body class="cms-body">
 
 <!-- Login screen -->
-<div id="login-screen" class="admin-login">
-    <div class="admin-login__logo"><span class="admin-login__logo-rage">RAGE</span> <span class="admin-login__logo-fill">FILL</span></div>
-    <h2 class="admin-login__title">Панель управления</h2>
-    <div class="form-group">
-        <label>Пароль</label>
-        <input type="password" id="login-password" class="form-input" placeholder="Введите пароль…" autocomplete="current-password" spellcheck="false" autofocus>
+<div id="login-screen" class="cms-login">
+    <div class="cms-login__card">
+        <div class="cms-login__logo"><span class="cms-login__logo-rage">RAGE</span> <span class="cms-login__logo-fill">FILL</span></div>
+        <p class="cms-login__subtitle">Панель управления</p>
+        <div class="form-group">
+            <label for="login-password">Пароль</label>
+            <input type="password" id="login-password" class="form-input" placeholder="Введите пароль…" autocomplete="current-password" spellcheck="false" autofocus>
+        </div>
+        <button id="login-btn" class="cms-login__btn">
+            <span class="btn-spinner"></span>
+            <span class="btn-text">Войти</span>
+        </button>
     </div>
-    <button id="login-btn" class="btn btn-primary btn-block" style="border-radius:14px;height:48px;">
-        <span class="btn-spinner"></span>
-        <span class="btn-text">Войти</span>
-    </button>
 </div>
 
-<!-- Admin panel -->
-<div id="admin-panel" style="display:none">
-    <!-- Admin header -->
-    <header class="admin-header">
-        <div class="admin-header__glow"></div>
-        <a href="/catalog.html" class="admin-header__label">RAGE FILL ADMIN</a>
-        <div class="admin-header__nav">
-            <a href="/" class="admin-header__link">Каталог</a>
-            <button id="logout-btn" class="admin-header__logout">Выход</button>
+<!-- CMS Layout -->
+<div id="admin-panel" class="cms" style="display:none">
+
+    <!-- Sidebar -->
+    <aside class="cms-sidebar" id="cms-sidebar">
+        <div class="cms-sidebar__logo">
+            <span class="cms-sidebar__logo-rage">RAGE</span> <span class="cms-sidebar__logo-fill">FILL</span>
         </div>
-    </header>
 
-    <div class="admin-content">
-        <!-- Add sauce button -->
-        <button id="add-sauce-btn" class="admin-add-btn">+ Добавить соус</button>
+        <nav class="cms-nav">
+            <div class="cms-nav__label">Контент</div>
+            <button class="cms-nav__item active" data-tab="sauces">
+                <svg class="cms-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <span>Товары</span>
+                <span class="cms-nav__badge" id="nav-sauces-count"></span>
+            </button>
+            <button class="cms-nav__item" data-tab="categories">
+                <svg class="cms-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+                <span>Категории</span>
+                <span class="cms-nav__badge" id="nav-categories-count"></span>
+            </button>
+            <button class="cms-nav__item" data-tab="site">
+                <svg class="cms-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                <span>Главная страница</span>
+            </button>
+        </nav>
 
-        <!-- Search -->
-        <div class="admin-search">
-            <div class="search-wrapper">
-                <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
-                <input type="text" class="search-input" id="admin-search" placeholder="Поиск по соусам…" autocomplete="off">
+        <div class="cms-sidebar__footer">
+            <button class="cms-sidebar__link" id="cms-theme-toggle">
+                <svg class="cms-theme-icon cms-theme-icon--light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="cms-theme-icon cms-theme-icon--dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                <span class="cms-theme-label">Тёмная тема</span>
+            </button>
+            <a href="/" class="cms-sidebar__link" target="_blank">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Открыть сайт
+            </a>
+            <button id="logout-btn" class="cms-sidebar__logout">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Выход
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="cms-main">
+
+        <!-- Mobile header -->
+        <header class="cms-topbar" id="cms-topbar">
+            <button class="cms-topbar__burger" id="sidebar-toggle" aria-label="Меню">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="cms-topbar__title" id="cms-topbar-title">Товары</div>
+            <a href="/" class="cms-topbar__site-link" target="_blank" aria-label="Открыть сайт">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+        </header>
+
+        <!-- Page: Sauces -->
+        <div class="cms-page active" id="tab-sauces">
+            <div class="cms-page__header">
+                <div>
+                    <h1 class="cms-page__title">Товары</h1>
+                    <div id="admin-counter" class="cms-page__subtitle"></div>
+                </div>
+                <button id="add-sauce-btn" class="cms-btn cms-btn--primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Добавить
+                </button>
             </div>
+
+            <div id="category-filters" class="cms-filter-chips"></div>
+
+            <div class="cms-toolbar">
+                <div class="cms-search">
+                    <svg class="cms-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"/><path d="m17 17 4 4" stroke-linecap="round"/>
+                    </svg>
+                    <input type="text" class="cms-search__input" id="admin-search" placeholder="Поиск по товарам…" autocomplete="off">
+                    <button type="button" class="cms-search__clear" id="admin-search-clear" aria-label="Очистить поиск">&times;</button>
+                </div>
+            </div>
+
+            <div class="cms-bulk-bar" id="bulk-bar" style="display:none">
+                <span id="bulk-count">0 выбрано</span>
+                <div class="cms-bulk-bar__actions">
+                    <button class="cms-btn cms-btn--sm" data-bulk="activate">Активировать</button>
+                    <button class="cms-btn cms-btn--sm" data-bulk="deactivate">Скрыть</button>
+                    <button class="cms-btn cms-btn--sm" data-bulk="in_stock">В наличии</button>
+                    <button class="cms-btn cms-btn--sm" data-bulk="out_stock">Нет в наличии</button>
+                    <button class="cms-btn cms-btn--sm cms-btn--danger" data-bulk="delete">Удалить</button>
+                </div>
+            </div>
+
+            <div id="sauce-list" class="admin-sauce-list"></div>
         </div>
 
-        <!-- Counter -->
-        <div id="admin-counter" class="admin-counter"></div>
+        <!-- Page: Categories -->
+        <div class="cms-page" id="tab-categories" style="display:none">
+            <div class="cms-page__header">
+                <div>
+                    <h1 class="cms-page__title">Категории</h1>
+                    <div class="cms-page__subtitle">Управление категориями товаров</div>
+                </div>
+                <button id="add-category-btn" class="cms-btn cms-btn--primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Добавить
+                </button>
+            </div>
+            <div id="categories-list" class="cms-categories-list"></div>
+        </div>
 
-        <!-- Sauce list -->
-        <div id="sauce-list" class="admin-sauce-list"></div>
-    </div>
+        <!-- Page: Site Settings -->
+        <div class="cms-page" id="tab-site" style="display:none">
+            <div class="cms-page__header">
+                <div>
+                    <h1 class="cms-page__title">Главная страница</h1>
+                    <div class="cms-page__subtitle">Управление контентом главной страницы сайта</div>
+                </div>
+            </div>
+            <div id="site-settings-loader" class="cms-loader">
+                <div class="cms-loader__spinner"></div>
+                <p class="cms-loader__text">Загрузка настроек…</p>
+            </div>
+
+            <form id="site-settings-form" class="cms-settings" style="display:none">
+
+                <nav class="cms-toc" id="cms-toc">
+                    <div class="cms-toc__controls">
+                        <button type="button" id="cms-expand-all" class="cms-toc__ctrl" title="Развернуть все" aria-label="Развернуть все секции">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
+                        </button>
+                        <button type="button" id="cms-collapse-all" class="cms-toc__ctrl" title="Свернуть все" aria-label="Свернуть все секции">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M7 18l5-5 5 5M7 11l5-5 5 5"/></svg>
+                        </button>
+                    </div>
+                </nav>
+
+                <!-- Featured Products -->
+                <section class="cms-card" data-section="featured">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        <h2 class="cms-card__title">Рекомендуемые товары</h2>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="form-group">
+                            <label for="ss-featured-title">Заголовок секции</label>
+                            <input type="text" id="ss-featured-title" class="form-input" placeholder="Популярное" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label>Товары <span style="font-weight:400;opacity:0.6">(пусто = авто-выбор по бейджу ХИТ)</span></label>
+                            <div id="ss-featured-products" class="cms-featured-picker"></div>
+                            <div class="cms-featured-picker__add">
+                                <select id="ss-featured-select" class="form-input cms-featured-picker__select">
+                                    <option value="">— Выберите товар —</option>
+                                </select>
+                                <button type="button" id="ss-featured-add" class="cms-btn cms-btn--sm">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Hero Section -->
+                <section class="cms-card" data-section="hero">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <h2 class="cms-card__title">Hero-секция</h2>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="form-group">
+                            <label for="ss-hero-tagline">Подзаголовок</label>
+                            <input type="text" id="ss-hero-tagline" class="form-input" placeholder="Острые соусы ручной работы…" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="ss-hero-description">Описание</label>
+                            <input type="text" id="ss-hero-description" class="form-input" placeholder="Идеальный выбор для мяса…" autocomplete="off">
+                            <div class="form-hint">Используйте &lt;br&gt; для переноса строки</div>
+                        </div>
+                        <div class="cms-row">
+                            <div class="form-group">
+                                <label for="ss-hero-btn-primary">Кнопка 1 (основная)</label>
+                                <input type="text" id="ss-hero-btn-primary" class="form-input" placeholder="Смотреть каталог" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="ss-hero-btn-secondary">Кнопка 2</label>
+                                <input type="text" id="ss-hero-btn-secondary" class="form-input" placeholder="Написать нам" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Benefits -->
+                <section class="cms-card" data-section="benefits">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                        <h2 class="cms-card__title">Преимущества</h2>
+                        <span class="cms-card__count" id="benefits-count"></span>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="form-group">
+                            <label for="ss-section-title-benefits">Заголовок секции</label>
+                            <input type="text" id="ss-section-title-benefits" class="form-input" placeholder="Почему выбирают нас" autocomplete="off">
+                        </div>
+                        <div id="ss-benefits-list" class="cms-repeater"></div>
+                        <button type="button" id="ss-benefits-add" class="cms-repeater__add">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Добавить преимущество
+                        </button>
+                    </div>
+                </section>
+
+                <!-- About -->
+                <section class="cms-card" data-section="about">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                        <h2 class="cms-card__title">О нас</h2>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="form-group">
+                            <label>Текст (HTML)</label>
+                            <div id="ss-about-editor"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Testimonials -->
+                <section class="cms-card" data-section="testimonials">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                        <h2 class="cms-card__title">Отзывы</h2>
+                        <span class="cms-card__count" id="testimonials-count"></span>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="form-group">
+                            <label for="ss-section-title-reviews">Заголовок секции</label>
+                            <input type="text" id="ss-section-title-reviews" class="form-input" placeholder="Отзывы" autocomplete="off">
+                        </div>
+                        <div id="ss-testimonials-list" class="cms-repeater"></div>
+                        <button type="button" id="ss-testimonials-add" class="cms-repeater__add">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Добавить отзыв
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Photo Reviews -->
+                <section class="cms-card" data-section="reviews">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        <h2 class="cms-card__title">Фото-отзывы</h2>
+                        <span class="cms-card__count" id="reviews-img-count"></span>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="file-input-wrapper">
+                            <div class="file-input-label">
+                                <span class="file-input-label__icon">📷</span>
+                                <span>Добавить фото отзывов</span>
+                                <span style="font-size:11px;opacity:0.6">JPG, PNG, WebP</span>
+                            </div>
+                            <input type="file" id="ss-reviews-upload" accept="image/jpeg,image/png,image/webp" multiple>
+                        </div>
+                        <div id="ss-reviews-list" class="additional-images-list cms-reviews-grid"></div>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section class="cms-card" data-section="faq">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+                        <h2 class="cms-card__title">Частые вопросы</h2>
+                        <span class="cms-card__count" id="faq-count"></span>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="form-group">
+                            <label for="ss-section-title-faq">Заголовок секции</label>
+                            <input type="text" id="ss-section-title-faq" class="form-input" placeholder="Частые вопросы" autocomplete="off">
+                        </div>
+                        <div id="ss-faq-list" class="cms-repeater"></div>
+                        <button type="button" id="ss-faq-add" class="cms-repeater__add">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Добавить вопрос
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Contacts -->
+                <section class="cms-card" data-section="contacts">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                        <h2 class="cms-card__title">Контакты</h2>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="cms-row">
+                            <div class="form-group">
+                                <label for="ss-contact-telegram">Telegram (username без @)</label>
+                                <input type="text" id="ss-contact-telegram" class="form-input" placeholder="rage_fill" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="ss-instagram-reviews-url">Instagram (ссылка на отзывы)</label>
+                                <input type="text" id="ss-instagram-reviews-url" class="form-input" placeholder="https://www.instagram.com/…" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Footer -->
+                <section class="cms-card" data-section="footer">
+                    <div class="cms-card__header">
+                        <svg class="cms-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 21h16M4 3h16M7 21V11l5-4 5 4v10"/></svg>
+                        <h2 class="cms-card__title">Подвал (Footer)</h2>
+                        <svg class="cms-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="cms-card__body">
+                        <div class="form-group">
+                            <label for="ss-footer-tagline">Подзаголовок</label>
+                            <input type="text" id="ss-footer-tagline" class="form-input" placeholder="Острые соусы ручной работы, Беларусь" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="ss-footer-about">Текст «О продукте»</label>
+                            <textarea id="ss-footer-about" class="form-input" rows="3" placeholder="Все соусы изготавливаются вручную…"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="cms-settings__actions">
+                    <button type="submit" id="ss-save-btn" class="cms-btn cms-btn--primary cms-btn--lg">
+                        <span class="btn-spinner"></span>
+                        <span class="btn-text">Сохранить изменения</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
 </div>
+
+<!-- Sidebar overlay (mobile) -->
+<div class="cms-sidebar-overlay" id="sidebar-overlay"></div>
 
 <!-- Sauce form modal -->
 <div id="form-overlay" class="form-modal-overlay">
@@ -72,24 +387,20 @@
             <input type="hidden" id="form-remove-image" value="0">
 
             <div class="form-group">
-                <label>Название *</label>
+                <label for="form-name">Название *</label>
                 <input type="text" id="form-name" class="form-input" placeholder="Название соуса" required minlength="2" autocomplete="off">
                 <div class="form-error" id="form-name-error">Минимум 2 символа</div>
             </div>
 
             <div class="form-group">
-                <label>Краткое описание</label>
+                <label for="form-subtitle">Краткое описание</label>
                 <input type="text" id="form-subtitle" class="form-input" placeholder="Напр. сверхострый копчёный соус" autocomplete="off">
             </div>
 
             <div class="form-group">
-                <label>Категория</label>
+                <label for="form-category">Категория</label>
                 <select id="form-category" class="form-input">
-                    <option value="sauce">Соусы</option>
-                    <option value="gift_set">Подарочные наборы</option>
-                    <option value="pickled_pepper">Маринованные перцы</option>
-                    <option value="spicy_peanut">Острый арахис</option>
-                    <option value="spice">Специи</option>
+                    <!-- Populated dynamically from API -->
                 </select>
             </div>
 
@@ -105,23 +416,23 @@
             </div>
 
             <div class="form-group">
-                <label>Объём</label>
+                <label for="form-volume">Объём</label>
                 <input type="text" id="form-volume" class="form-input" placeholder="Напр. 100 мл" autocomplete="off">
             </div>
 
             <div class="form-group">
                 <label>Уровень остроты (1–5)</label>
-                <div class="heat-selector" id="heat-selector">
-                    <div class="heat-selector-dot" data-val="1">1</div>
-                    <div class="heat-selector-dot" data-val="2">2</div>
-                    <div class="heat-selector-dot active" data-val="3">3</div>
-                    <div class="heat-selector-dot" data-val="4">4</div>
-                    <div class="heat-selector-dot" data-val="5">5</div>
+                <div class="heat-selector" id="heat-selector" role="radiogroup" aria-label="Уровень остроты">
+                    <button type="button" class="heat-selector-dot" data-val="1" role="radio" aria-checked="false">1</button>
+                    <button type="button" class="heat-selector-dot" data-val="2" role="radio" aria-checked="false">2</button>
+                    <button type="button" class="heat-selector-dot active" data-val="3" role="radio" aria-checked="true">3</button>
+                    <button type="button" class="heat-selector-dot" data-val="4" role="radio" aria-checked="false">4</button>
+                    <button type="button" class="heat-selector-dot" data-val="5" role="radio" aria-checked="false">5</button>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Порядок сортировки</label>
+                <label for="form-sort">Порядок сортировки</label>
                 <input type="number" id="form-sort" class="form-input" value="0" min="0">
             </div>
 
@@ -159,7 +470,7 @@
                     </label>
                     <span class="toggle-status" id="toggle-hit-text">ХИТ</span>
                 </div>
-                <div class="toggle-label" style="margin-top:8px">
+                <div class="toggle-label toggle-label--spaced">
                     <label class="toggle-switch">
                         <input type="checkbox" id="form-is-new">
                         <div class="toggle-track"></div>
@@ -167,7 +478,7 @@
                     </label>
                     <span class="toggle-status" id="toggle-new-text">НОВИНКА</span>
                 </div>
-                <div class="toggle-label" style="margin-top:8px">
+                <div class="toggle-label toggle-label--spaced">
                     <label class="toggle-switch">
                         <input type="checkbox" id="form-is-low-stock">
                         <div class="toggle-track"></div>
@@ -206,28 +517,44 @@
                 <div class="additional-images-list" id="additional-images-list"></div>
             </div>
 
+            <div class="form-group form-group--seo">
+                <label>SEO</label>
+                <div class="form-group">
+                    <label for="form-meta-title">Meta Title <span style="font-weight:400;opacity:0.6">(необязательно)</span></label>
+                    <input type="text" id="form-meta-title" class="form-input" placeholder="Авто-генерация если пусто" maxlength="70" autocomplete="off">
+                    <div class="form-hint" id="meta-title-count">0/70</div>
+                </div>
+                <div class="form-group">
+                    <label for="form-meta-description">Meta Description <span style="font-weight:400;opacity:0.6">(необязательно)</span></label>
+                    <textarea id="form-meta-description" class="form-input" rows="2" placeholder="Авто-генерация если пусто" maxlength="160"></textarea>
+                    <div class="form-hint" id="meta-desc-count">0/160</div>
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" id="form-submit-btn" class="btn-save">
                     <span class="btn-spinner"></span>
                     <span class="btn-text">СОХРАНИТЬ</span>
                 </button>
-                <button type="button" id="form-delete-btn" class="btn btn-ghost-red btn-block" style="display:none">
-                    Удалить соус
-                </button>
                 <button type="button" id="form-cancel" class="btn btn-secondary btn-block">Отмена</button>
+            </div>
+            <div class="form-actions__danger-zone" id="form-danger-zone" style="display:none">
+                <button type="button" id="form-delete-btn" class="btn btn-ghost-red btn-block">
+                    Удалить товар
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Confirm delete dialog -->
-<div id="confirm-overlay" class="form-modal-overlay" style="align-items:center;justify-content:center;">
+<div id="confirm-overlay" class="form-modal-overlay form-modal-overlay--center">
     <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
         <h2 class="confirm-dialog__title" id="confirm-dialog-title">Удалить соус?</h2>
         <p id="confirm-text" class="confirm-dialog__text"></p>
-        <div class="form-actions" style="flex-direction:row">
-            <button id="confirm-cancel" class="btn btn-secondary" style="flex:1">Отмена</button>
-            <button id="confirm-ok" class="btn btn-danger" style="flex:1">
+        <div class="form-actions form-actions--row">
+            <button id="confirm-cancel" class="btn btn-secondary btn-flex">Отмена</button>
+            <button id="confirm-ok" class="btn btn-danger btn-flex">
                 <span class="btn-spinner"></span>
                 <span class="btn-text">Удалить</span>
             </button>
@@ -236,13 +563,13 @@
 </div>
 
 <!-- Unsaved changes dialog -->
-<div id="unsaved-overlay" class="form-modal-overlay" style="align-items:center;justify-content:center;">
+<div id="unsaved-overlay" class="form-modal-overlay form-modal-overlay--center">
     <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-dialog-title">
         <h2 class="confirm-dialog__title" id="unsaved-dialog-title">Несохранённые изменения</h2>
         <p class="confirm-dialog__text">Вы уверены, что хотите закрыть форму? Изменения будут потеряны.</p>
-        <div class="form-actions" style="flex-direction:row">
-            <button id="unsaved-cancel" class="btn btn-secondary" style="flex:1">Остаться</button>
-            <button id="unsaved-ok" class="btn btn-danger" style="flex:1">Закрыть</button>
+        <div class="form-actions form-actions--row">
+            <button id="unsaved-cancel" class="btn btn-secondary btn-flex">Остаться</button>
+            <button id="unsaved-ok" class="btn btn-danger btn-flex">Закрыть</button>
         </div>
     </div>
 </div>
@@ -250,6 +577,7 @@
 <!-- Toast -->
 <div id="toast" class="toast" aria-live="polite" role="status"></div>
 
-<script src="/js/admin.js?v=1.7.0" data-cfasync="false"></script>
+<script src="/js/Sortable.min.js" data-cfasync="false"></script>
+<script src="/js/admin.js?v={{V_ADMIN}}" data-cfasync="false"></script>
 </body>
 </html>
