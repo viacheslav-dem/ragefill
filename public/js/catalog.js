@@ -109,7 +109,21 @@ function cleanQuillHtml(html) {
         .replace(/<p><br><\/p>/gi, '')
         .replace(/<br><\/p>/gi, '</p>')
         .replace(/<p>\s*<\/p>/gi, '');
-    return clean;
+    return sanitizeHtml(clean);
+}
+
+function sanitizeHtml(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html || '';
+    div.querySelectorAll('script,style,iframe,object,embed,link').forEach(el => el.remove());
+    div.querySelectorAll('*').forEach(el => {
+        for (let i = el.attributes.length - 1; i >= 0; i--) {
+            const name = el.attributes[i].name.toLowerCase();
+            if (name.startsWith('on') || name === 'style' || name === 'srcset') el.removeAttribute(name);
+            if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(el.getAttribute(name))) el.removeAttribute(name);
+        }
+    });
+    return div.innerHTML;
 }
 
 function haptic(type, style) {
@@ -331,6 +345,7 @@ function updateFilterBadge() {
 filterToggleBtn.addEventListener('click', () => {
     const isOpen = filterDropdown.classList.toggle('open');
     filterToggleBtn.setAttribute('aria-expanded', String(isOpen));
+    if (isOpen) updateFilterResultCount();
     haptic('impact', 'light');
 });
 
@@ -345,8 +360,36 @@ document.addEventListener('click', (e) => {
 
 resetBtn.addEventListener('click', () => {
     resetFilters();
+    updateFilterResultCount();
     haptic('impact', 'light');
 });
+
+// --- Filter apply button (mobile) ---
+const applyBtn = document.getElementById('toolbar-apply-btn');
+
+function updateFilterResultCount() {
+    if (!applyBtn) return;
+    const count = getFilteredSauces().length;
+    applyBtn.textContent = count > 0
+        ? `Показать ${count} ${pluralize(count, 'товар', 'товара', 'товаров')}`
+        : 'Ничего не найдено';
+    applyBtn.disabled = count === 0;
+}
+
+function pluralize(n, one, few, many) {
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+    return many;
+}
+
+if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+        filterDropdown.classList.remove('open');
+        filterToggleBtn.setAttribute('aria-expanded', 'false');
+        haptic('impact', 'light');
+    });
+}
 
 // --- Modal ---
 function setModalImage(sauce) {
@@ -540,6 +583,7 @@ function initChipGroup(container, selector, dataAttr, ariaAttr, onSelect) {
         setState(val);
         updateFilterBadge();
         applyFilters();
+        updateFilterResultCount();
     });
 });
 

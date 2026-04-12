@@ -31,6 +31,9 @@ return [
     // Contact Telegram username (without @) for "Write to seller" button
     'contact_telegram' => 'rage_fill',
 
+    // Telegram webhook secret (set via setWebhook secret_token parameter)
+    'webhook_secret' => '',
+
     // Debug mode
     'debug' => true,
 ];

@@ -136,7 +136,7 @@ class SeoHelper
         }
 
         return '<script type="application/ld+json">'
-            . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
+            . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_PRETTY_PRINT)
             . '</script>';
     }
 
@@ -165,7 +165,7 @@ class SeoHelper
         ];
 
         return '<script type="application/ld+json">'
-            . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)
             . '</script>';
     }
 
@@ -194,7 +194,7 @@ class SeoHelper
         ];
 
         return '<script type="application/ld+json">'
-            . json_encode($org, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            . json_encode($org, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)
             . '</script>';
     }
 
@@ -216,7 +216,7 @@ class SeoHelper
         ];
 
         return '<script type="application/ld+json">'
-            . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)
             . '</script>';
     }
 
@@ -245,7 +245,7 @@ class SeoHelper
 
         return $this->organizationJsonLd() . "\n"
             . '<script type="application/ld+json">'
-            . json_encode($itemList, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            . json_encode($itemList, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)
             . '</script>';
     }
 
@@ -319,6 +319,9 @@ class SeoHelper
 
         // Privacy policy
         $xml .= $this->sitemapUrl($this->baseUrl . '/privacy', '0.3', 'yearly');
+
+        // Peppers page
+        $xml .= $this->sitemapUrl($this->baseUrl . '/peppers', '0.6', 'monthly');
 
         // Product pages
         foreach ($sauces as $sauce) {

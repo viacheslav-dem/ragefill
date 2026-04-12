@@ -17,6 +17,7 @@ let selectedIds = new Set();
 let activeCategoryFilter = null;
 let currentHeat = 5;
 let formDirty = false;
+let peppersDirty = false;
 let removeImage = false;
 let editingId = null;
 let additionalImages = []; // [{file: File|null, url: string, filename: string|null}]
@@ -185,6 +186,9 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     token = null;
     localStorage.removeItem('ragefill_token');
     siteSettingsLoaded = false;
+    peppersLoaded = false;
+    peppersDirty = false;
+    _siteSettingsPromise = null;
     loginScreen.style.display = '';
     adminPanel.style.display = 'none';
 });
@@ -194,6 +198,39 @@ function showAdmin() {
     adminPanel.style.display = 'flex';
     loadQuillAssets().catch(() => {});
     loadCategories().then(() => loadSauces());
+    loadPeppersBadge();
+}
+
+let _siteSettingsPromise = null;
+
+function fetchSiteSettingsOnce() {
+    if (!_siteSettingsPromise) {
+        _siteSettingsPromise = fetch(`${API_BASE}/admin/site-settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(res => {
+            if (!res.ok) throw new Error(res.status);
+            return res.json();
+        }).catch(err => {
+            _siteSettingsPromise = null;
+            throw err;
+        });
+    }
+    return _siteSettingsPromise;
+}
+
+async function loadPeppersBadge() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/site-settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const peppers = Array.isArray(data.peppers) ? data.peppers : [];
+        const badge = document.getElementById('nav-peppers-count');
+        if (badge) badge.textContent = peppers.length || '';
+        // Cache for loadPeppersSettings
+        _siteSettingsPromise = Promise.resolve(data);
+    } catch {}
 }
 
 // --- Load categories ---
@@ -476,16 +513,18 @@ function openForm(sauce = null) {
     }
     renderAdditionalImages();
 
+    // Reset dirty state BEFORE adding the overlay (and before Quill fires text-change)
+    formDirty = false;
     formOverlay.classList.add('active');
 
-    // Reset dirty state AFTER Quill content is set (Quill fires text-change on programmatic updates)
-    setTimeout(() => {
+    // Re-attach dirty listeners after a tick so Quill's programmatic text-change has settled
+    requestAnimationFrame(() => {
         formDirty = false;
         sauceForm.querySelectorAll('input:not([type="hidden"]), textarea, select').forEach(el => {
             el.addEventListener('input', () => { formDirty = true; }, { once: true });
             el.addEventListener('change', () => { formDirty = true; }, { once: true });
         });
-    }, 100);
+    });
 }
 
 function editSauce(id) {
@@ -741,9 +780,8 @@ confirmOverlay.addEventListener('click', (e) => {
 
 // --- Helpers ---
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text || '';
-    return div.innerHTML;
+    const s = String(text ?? '');
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function isInStock(sauce) {
@@ -839,6 +877,7 @@ sauceList.addEventListener('click', (e) => {
         const field = toggleBtn.dataset.toggleField;
         const sauce = sauces.find(s => s.id == id);
         if (!sauce) return;
+        const origVal = sauce[field];
         const newVal = field === 'is_active' ? (sauce.is_active ? 0 : 1) : (isInStock(sauce) ? 0 : 1);
         sauce[field] = newVal;
         renderSauceList(adminSearch.value.trim());
@@ -849,9 +888,9 @@ sauceList.addEventListener('click', (e) => {
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         }).then(res => {
-            if (!res.ok) { sauce[field] = newVal ? 0 : 1; renderSauceList(adminSearch.value.trim()); showToast('Ошибка', 'error'); }
+            if (!res.ok) { sauce[field] = origVal; renderSauceList(adminSearch.value.trim()); showToast('Ошибка', 'error'); }
         }).catch(() => {
-            sauce[field] = newVal ? 0 : 1; renderSauceList(adminSearch.value.trim()); showToast('Ошибка соединения', 'error');
+            sauce[field] = origVal; renderSauceList(adminSearch.value.trim()); showToast('Ошибка соединения', 'error');
         });
         return;
     }
@@ -949,10 +988,21 @@ let siteSettingsLoaded = false;
 let quillAbout = null;
 
 // --- CMS Navigation (sidebar) ---
-const PAGE_TITLES = { sauces: 'Товары', categories: 'Категории', site: 'Главная страница' };
+const PAGE_TITLES = { sauces: 'Товары', categories: 'Категории', peppers: 'Наши перцы', site: 'Главная страница' };
+
+function isPeppersTabActive() {
+    const tab = document.getElementById('tab-peppers');
+    return tab && tab.classList.contains('active');
+}
 
 document.querySelectorAll('.cms-nav__item[data-tab]').forEach(navItem => {
     navItem.addEventListener('click', () => {
+        // Warn if leaving peppers tab with unsaved changes
+        if (isPeppersTabActive() && peppersDirty && navItem.dataset.tab !== 'peppers') {
+            if (!confirm('На вкладке «Наши перцы» есть несохранённые изменения. Уйти без сохранения?')) return;
+            peppersDirty = false;
+        }
+
         // Switch active nav
         document.querySelectorAll('.cms-nav__item').forEach(n => n.classList.remove('active'));
         navItem.classList.add('active');
@@ -972,6 +1022,10 @@ document.querySelectorAll('.cms-nav__item[data-tab]').forEach(navItem => {
         if (sidebar) sidebar.classList.remove('open');
         if (overlay) overlay.classList.remove('active');
 
+        // Load peppers on first visit
+        if (navItem.dataset.tab === 'peppers' && !peppersLoaded) {
+            loadPeppersSettings();
+        }
         // Load site settings on first visit
         if (navItem.dataset.tab === 'site' && !siteSettingsLoaded) {
             loadSiteSettings();
@@ -1158,9 +1212,184 @@ function renderFaqRepeater(items) {
     initRepeaterSortable(container.querySelector('tbody'));
 }
 
+// ============================================
+// PEPPERS PAGE MANAGEMENT
+// ============================================
+
+let peppersLoaded = false;
+
+async function loadPeppersSettings() {
+    try {
+        const data = await fetchSiteSettingsOnce();
+        const peppers = Array.isArray(data.peppers) ? data.peppers : [];
+        renderPeppersRepeater(peppers);
+        document.getElementById('ss-peppers-page-title').value = data.peppers_page_title || '';
+        document.getElementById('ss-peppers-page-intro').value = data.peppers_page_intro || '';
+        const badge = document.getElementById('nav-peppers-count');
+        if (badge) badge.textContent = peppers.length || '';
+        peppersLoaded = true;
+        peppersDirty = false;
+    } catch { showToast('Ошибка загрузки', 'error'); }
+}
+
+document.getElementById('peppers-save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('peppers-save-btn');
+    const peppers = collectRepeaterData('pepper');
+    const emptyNames = peppers.filter(p => !p.name);
+    if (emptyNames.length) {
+        showToast('Заполните название для всех перцев', 'error');
+        return;
+    }
+    setLoading(btn, true);
+    const payload = {
+        peppers,
+        peppers_page_title: document.getElementById('ss-peppers-page-title').value.trim(),
+        peppers_page_intro: document.getElementById('ss-peppers-page-intro').value.trim(),
+    };
+    try {
+        const res = await fetch(`${API_BASE}/admin/site-settings`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (res.status === 401) { document.getElementById('logout-btn').click(); return; }
+        const data = await res.json();
+        if (data.success) {
+            showToast('Перцы сохранены');
+            peppersDirty = false;
+            _siteSettingsPromise = null; // invalidate cache after save
+            const badge = document.getElementById('nav-peppers-count');
+            if (badge) badge.textContent = payload.peppers.length || '';
+        } else {
+            showToast('Ошибка сохранения', 'error');
+        }
+    } catch { showToast('Ошибка соединения', 'error'); } finally {
+        setLoading(btn, false);
+    }
+});
+
+function renderPeppersRepeater(items) {
+    const cnt = document.getElementById('nav-peppers-count');
+    if (cnt) cnt.textContent = items.length || '';
+    const container = document.getElementById('ss-peppers-list');
+    container.innerHTML = `<div class="pepper-admin-list">${items.map((p, i) => {
+        const hasImg = !!p.image;
+        const imgSrc = `/uploads/peppers/${escapeHtml(p.image)}`;
+        return `<div class="pepper-admin-item" data-index="${i}">
+            <div class="pepper-admin-item__header">
+                <div class="pepper-admin-item__drag site-repeater__drag-handle"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><circle cx="9" cy="7" r="1.5"/><circle cx="15" cy="7" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="17" r="1.5"/><circle cx="15" cy="17" r="1.5"/></svg></div>
+                <span class="pepper-admin-item__num">${i + 1}</span>
+                ${hasImg ? `<img class="pepper-admin-item__thumb" src="${imgSrc}" alt="">` : ''}
+                <span class="pepper-admin-item__title">${escapeHtml(p.name || 'Новый перец')}</span>
+                <span class="pepper-admin-item__shu-hint">${p.scoville_max ? Number(p.scoville_max).toLocaleString('ru-RU') + ' SHU' : ''}</span>
+                <button type="button" class="pepper-admin-item__toggle" title="Свернуть/развернуть"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+                <button type="button" class="pepper-admin-item__remove site-repeater__remove" data-remove="pepper" data-index="${i}" title="Удалить">&times;</button>
+            </div>
+            <div class="pepper-admin-item__body">
+                <label class="pepper-admin-dropzone ${hasImg ? 'pepper-admin-dropzone--has-img' : ''}">
+                    ${hasImg
+                        ? `<img src="${imgSrc}" class="pepper-admin-dropzone__img">`
+                        : `<div class="pepper-admin-dropzone__placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 5v14M5 12h14"/></svg>
+                            <span>Загрузить фото</span>
+                          </div>`}
+                    ${hasImg ? '<span class="pepper-admin-dropzone__overlay">Заменить</span>' : ''}
+                    <input type="file" class="pepper-admin-upload" data-index="${i}" accept="image/*" hidden>
+                    <input type="hidden" class="ss-pepper-image" value="${escapeHtml(p.image || '')}">
+                </label>
+                <div class="pepper-admin-item__fields">
+                    <div class="pepper-admin-field">
+                        <label>Название</label>
+                        <input type="text" class="form-input ss-pepper-name" value="${escapeHtml(p.name || '')}" placeholder="Carolina Reaper">
+                    </div>
+                    <div class="pepper-admin-field-row">
+                        <div class="pepper-admin-field">
+                            <label>SHU мин</label>
+                            <input type="text" class="form-input ss-pepper-scoville-min" value="${p.scoville_min ? Number(p.scoville_min).toLocaleString('ru-RU') : ''}" placeholder="1 400 000" inputmode="numeric">
+                        </div>
+                        <div class="pepper-admin-field">
+                            <label>SHU макс</label>
+                            <input type="text" class="form-input ss-pepper-scoville-max" value="${p.scoville_max ? Number(p.scoville_max).toLocaleString('ru-RU') : ''}" placeholder="2 200 000" inputmode="numeric">
+                        </div>
+                    </div>
+                    <div class="pepper-admin-field">
+                        <label>Описание</label>
+                        <textarea class="form-input ss-pepper-desc" placeholder="Краткое описание перца" rows="3">${escapeHtml(p.description || '')}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+    bindRemoveButtons(container, 'pepper', renderPeppersRepeater);
+    initRepeaterSortable(container.querySelector('.pepper-admin-list'));
+
+    // Collapse/expand toggle
+    container.querySelectorAll('.pepper-admin-item__toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            btn.closest('.pepper-admin-item').classList.toggle('collapsed');
+        });
+    });
+    // Header click also toggles (except drag, remove, toggle button itself)
+    container.querySelectorAll('.pepper-admin-item__header').forEach(header => {
+        header.addEventListener('click', (e) => {
+            if (e.target.closest('.pepper-admin-item__drag, .pepper-admin-item__remove, .pepper-admin-item__toggle')) return;
+            header.closest('.pepper-admin-item').classList.toggle('collapsed');
+        });
+    });
+
+    // Track field changes for dirty state
+    container.querySelectorAll('input.form-input, textarea.form-input').forEach(el => {
+        el.addEventListener('input', () => { peppersDirty = true; }, { once: true });
+    });
+
+    // Bind image upload handlers
+    container.querySelectorAll('.pepper-admin-upload').forEach(input => {
+        input.addEventListener('change', async function() {
+            if (!this.files.length) return;
+            const row = this.closest('.pepper-admin-item');
+            const fd = new FormData();
+            fd.append('image', this.files[0]);
+            try {
+                const res = await fetch(`${API_BASE}/admin/peppers/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: fd
+                });
+                if (!res.ok) { showToast('Ошибка загрузки', 'error'); return; }
+                const data = await res.json();
+                if (data.filename) {
+                    row.querySelector('.ss-pepper-image').value = data.filename;
+                    peppersDirty = true;
+                    const items = collectRepeaterData('pepper');
+                    renderPeppersRepeater(items);
+                    showToast('Фото загружено');
+                } else {
+                    showToast(data.error || 'Ошибка загрузк��', 'error');
+                }
+            } catch { showToast('Ошибка загрузки', 'error'); }
+        });
+    });
+
+}
+
+document.getElementById('peppers-collapse-all').addEventListener('click', () => {
+    document.querySelectorAll('#ss-peppers-list .pepper-admin-item').forEach(item => item.classList.add('collapsed'));
+});
+document.getElementById('peppers-expand-all').addEventListener('click', () => {
+    document.querySelectorAll('#ss-peppers-list .pepper-admin-item').forEach(item => item.classList.remove('collapsed'));
+});
+
 function bindRemoveButtons(container, type, renderFn) {
     container.querySelectorAll(`.site-repeater__remove[data-remove="${type}"]`).forEach(btn => {
         btn.addEventListener('click', () => {
+            if (type === 'pepper') {
+                const idx = parseInt(btn.dataset.index);
+                const names = container.querySelectorAll('.ss-pepper-name');
+                const name = names[idx] ? names[idx].value.trim() : '';
+                if (!confirm(`Удалить перец${name ? ' «' + name + '»' : ''}? Не забудьте сохранить после удаления.`)) return;
+                peppersDirty = true;
+            }
             const items = collectRepeaterData(type);
             items.splice(parseInt(btn.dataset.index), 1);
             renderFn(items);
@@ -1185,6 +1414,13 @@ document.getElementById('ss-faq-add').addEventListener('click', () => {
     const items = collectRepeaterData('faq');
     items.push({ question: '', answer: '' });
     renderFaqRepeater(items);
+});
+
+document.getElementById('ss-peppers-add').addEventListener('click', () => {
+    const items = collectRepeaterData('pepper');
+    items.push({ name: '', scoville_min: 0, scoville_max: 0, description: '' });
+    peppersDirty = true;
+    renderPeppersRepeater(items);
 });
 
 // --- Collect repeater data ---
@@ -1215,13 +1451,28 @@ function collectRepeaterData(type) {
             answer: answers[i].value.trim(),
         }));
     }
+    if (type === 'pepper') {
+        const names = document.querySelectorAll('.ss-pepper-name');
+        const mins = document.querySelectorAll('.ss-pepper-scoville-min');
+        const maxs = document.querySelectorAll('.ss-pepper-scoville-max');
+        const descs = document.querySelectorAll('.ss-pepper-desc');
+        const imgs = document.querySelectorAll('.ss-pepper-image');
+        const parseShu = v => parseInt(String(v).replace(/\D/g, '')) || 0;
+        return Array.from(names).map((_, i) => ({
+            name: names[i].value.trim(),
+            scoville_min: parseShu(mins[i].value),
+            scoville_max: parseShu(maxs[i].value),
+            description: descs[i].value.trim(),
+            image: imgs[i] ? imgs[i].value.trim() : '',
+        }));
+    }
     return [];
 }
 
-// --- Warn before leaving with unsaved form data ---
+// --- Warn before leaving with unsaved data ---
 window.addEventListener('beforeunload', (e) => {
     const formOpen = formOverlay.classList.contains('active');
-    if (formOpen && formDirty) {
+    if ((formOpen && formDirty) || peppersDirty) {
         e.preventDefault();
         e.returnValue = '';
     }
@@ -1700,19 +1951,15 @@ function initSauceSortable() {
             const newOrder = Array.from(items).map(el => parseInt(el.dataset.sauceId));
             const visibleIds = new Set(newOrder);
 
-            // Rebuild: reordered visible items first, then non-visible in original order
-            const result = [];
-            for (const s of sauces) {
-                if (visibleIds.has(s.id)) {
-                    // Skip — will be inserted from newOrder
-                } else {
-                    result.push(s);
-                }
-            }
-            // Now interleave: place reordered visible items at the front (they were sorted by sort_order)
+            // Rebuild: keep non-visible items in their original positions,
+            // only re-slot visible items into the positions they previously occupied
             const sauceMap = new Map(sauces.map(s => [s.id, s]));
+            const visiblePositions = [];
+            sauces.forEach((s, i) => { if (visibleIds.has(s.id)) visiblePositions.push(i); });
             const reordered = newOrder.map(id => sauceMap.get(id)).filter(Boolean);
-            sauces = [...reordered, ...result];
+            const newSauces = [...sauces];
+            visiblePositions.forEach((pos, i) => { if (reordered[i]) newSauces[pos] = reordered[i]; });
+            sauces = newSauces;
             sauces.forEach((s, i) => s.sort_order = i);
 
             // Save to backend

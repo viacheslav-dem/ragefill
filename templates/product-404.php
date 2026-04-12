@@ -6,19 +6,7 @@ $metaTags = '<meta name="robots" content="noindex">';
 <html lang="ru">
 <?php include __DIR__ . '/partials/head.php'; ?>
 <body>
-    <header class="header">
-        <div class="header__inner">
-            <a href="/" class="header__logo-link" aria-label="На главную">
-                <div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div>
-            </a>
-            <div class="header__actions">
-                <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
-                    <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                    <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                </button>
-            </div>
-        </div>
-    </header>
+    <?php include __DIR__ . '/partials/header.php'; ?>
     <main style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 80px);padding:40px 20px;text-align:center;">
         <div>
             <div style="font-size:80px;line-height:1;margin-bottom:16px;opacity:0.25;">
@@ -52,6 +40,16 @@ $metaTags = '<meta name="robots" content="noindex">';
             btn.addEventListener('click',function(){
                 var isDark=document.body.classList.toggle('tg-dark');
                 localStorage.setItem('ragefill-theme',isDark?'dark':'light');
+            });
+        })();
+        (function(){
+            var btn=document.getElementById('burger-btn'),nav=document.getElementById('main-nav');
+            if(!btn||!nav)return;
+            btn.addEventListener('click',function(){
+                var open=nav.classList.toggle('open');
+                btn.classList.toggle('open',open);
+                btn.setAttribute('aria-expanded',String(open));
+                document.body.classList.toggle('menu-open',open);
             });
         })();
     </script>

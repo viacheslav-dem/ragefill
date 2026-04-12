@@ -28,6 +28,10 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
                     Каталог
                 </a>
+                <a href="/peppers">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 1.5.7 2.8 1.8 3.7L8 22h8l-1.3-11.8c1.1-.9 1.8-2.2 1.8-3.7C16.5 4 14.5 2 12 2z"/></svg>
+                    Наши перцы
+                </a>
             </nav>
         </div>
         <div class="site-footer__about">

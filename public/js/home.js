@@ -93,6 +93,25 @@
         var MOBILE_BP = 1024;
         var sauces = data.sauces || [];
         var contactTg = data.contactTg || '';
+
+        function esc(text) {
+            return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function sanitizeHtml(html) {
+            var div = document.createElement('div');
+            div.innerHTML = html || '';
+            div.querySelectorAll('script,style,iframe,object,embed,link').forEach(function(el) { el.remove(); });
+            div.querySelectorAll('*').forEach(function(el) {
+                for (var i = el.attributes.length - 1; i >= 0; i--) {
+                    var name = el.attributes[i].name.toLowerCase();
+                    if (name.startsWith('on') || name === 'style' || name === 'srcset') el.removeAttribute(name);
+                    if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(el.getAttribute(name))) el.removeAttribute(name);
+                }
+            });
+            return div.innerHTML;
+        }
+
         var overlay = document.getElementById('home-modal-overlay');
         var modal = document.getElementById('home-modal');
         if (!overlay || !modal) return;
@@ -108,7 +127,7 @@
 
             var imgWrap = document.getElementById('home-modal-image');
             if (sauce.image) {
-                imgWrap.innerHTML = '<img class="modal__image" src="/uploads/' + sauce.image + '" alt="' + sauce.name + '">';
+                imgWrap.innerHTML = '<img class="modal__image" src="/uploads/' + esc(sauce.image) + '" alt="' + esc(sauce.name) + '">';
             } else {
                 imgWrap.innerHTML = '<div class="modal__image-placeholder"></div>';
             }
@@ -130,7 +149,7 @@
             peppersEl.querySelector('.modal__pepper-icons').innerHTML = iconsHtml;
             peppersEl.querySelector('.modal__pepper-label').textContent = 'Острота ' + heat + ' из 5';
 
-            descEl.innerHTML = sauce.description || '';
+            descEl.innerHTML = sanitizeHtml(sauce.description);
             descEl.classList.add('collapsed');
             readMoreBtn.style.display = sauce.description ? '' : 'none';
             readMoreBtn.textContent = 'Читать далее';
@@ -139,7 +158,7 @@
             var compVal = document.getElementById('home-modal-composition-value');
             if (sauce.composition) {
                 compEl.style.display = '';
-                compVal.innerHTML = sauce.composition;
+                compVal.innerHTML = sanitizeHtml(sauce.composition);
             } else {
                 compEl.style.display = 'none';
             }

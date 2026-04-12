@@ -45,6 +45,13 @@ class Database
             $this->seedDefaultSettings();
         }
 
+        // Seed peppers data if not yet present (for existing databases)
+        $hasPeppers = $this->pdo->prepare("SELECT 1 FROM site_settings WHERE key = 'peppers'");
+        $hasPeppers->execute();
+        if (!$hasPeppers->fetch()) {
+            $this->seedPeppersDefaults();
+        }
+
         // --- categories table ---
         $this->pdo->exec("
             CREATE TABLE IF NOT EXISTS categories (
@@ -191,6 +198,31 @@ class Database
         }
     }
 
+    private function seedPeppersDefaults(): void
+    {
+        $peppers = [
+            ['name' => 'Carolina Reaper', 'scoville_min' => 1400000, 'scoville_max' => 2200000, 'description' => 'Рекордсмен книги Гиннесса. Характерный хвостик «жало» и фруктовый аромат, за которым скрывается экстремальная острота. Выведен Эдом Карри в Южной Каролине.'],
+            ['name' => 'Trinidad Scorpion Moruga Red', 'scoville_min' => 1200000, 'scoville_max' => 2009231, 'description' => 'Один из самых острых перцев планеты родом из Тринидада. Сладковатый фруктовый вкус быстро сменяется обжигающим жаром, который нарастает волнами.'],
+            ['name' => 'Jigsaw Big Black Mama', 'scoville_min' => 1500000, 'scoville_max' => 2200000, 'description' => 'Гибрид с тёмной морщинистой кожицей и экстремальной остротой. Глубокий, почти копчёный вкус с длительным жгучим послевкусием.'],
+            ['name' => 'Carolina Reaper Black', 'scoville_min' => 1400000, 'scoville_max' => 2200000, 'description' => 'Тёмная разновидность Carolina Reaper. Сохраняет фирменную остроту оригинала с более насыщенным, землистым вкусовым профилем.'],
+            ['name' => 'Naga Brain Orange', 'scoville_min' => 900000, 'scoville_max' => 1300000, 'description' => 'Перец с бугристой поверхностью, напоминающей мозг. Яркий цитрусовый вкус и мощная, но не мгновенная острота — нарастает постепенно.'],
+            ['name' => 'Scotch Bonnet', 'scoville_min' => 100000, 'scoville_max' => 350000, 'description' => 'Карибская классика. Сладкий тропический аромат с нотами манго и яблока. Острота ощутимая, но не экстремальная — идеален для соусов с характером.'],
+            ['name' => 'Jonah 7 POT', 'scoville_min' => 800000, 'scoville_max' => 1200000, 'description' => 'Разновидность семейства 7 Pot из Тринидада. Название говорит само за себя: одного перца хватит на семь горшков еды. Фруктовый и цветочный вкус.'],
+            ['name' => 'Habanero Orange', 'scoville_min' => 150000, 'scoville_max' => 350000, 'description' => 'Легенда мира острых перцев. Яркий цитрусово-фруктовый аромат и чистая, прямая острота. Универсальный перец для соусов и маринадов.'],
+            ['name' => 'Carolina Reaper Apocalypse Scorpion', 'scoville_min' => 1400000, 'scoville_max' => 2200000, 'description' => 'Мощный гибрид Carolina Reaper и Apocalypse Scorpion. Сочетает фруктовую сладость с безжалостной остротой. Один из самых жгучих перцев в коллекции.'],
+            ['name' => 'Big Red Mama', 'scoville_min' => 900000, 'scoville_max' => 1300000, 'description' => 'Крупный ярко-красный перец с толстыми стенками. Сладковатый вкус с ягодными нотами, переходящий в интенсивное продолжительное жжение.'],
+            ['name' => 'The Pain', 'scoville_min' => 1000000, 'scoville_max' => 1400000, 'description' => 'Название не врёт. Компактный перец с мощнейшей концентрацией капсаицина. Острота приходит мгновенно и держится долго. Для опытных.'],
+            ['name' => 'Trinidad Scorpion Butch T', 'scoville_min' => 800000, 'scoville_max' => 1463700, 'description' => 'Бывший мировой рекордсмен по остроте. Назван в честь Бутча Тейлора из Австралии. Сладкий фруктовый вкус с мощным, долгим жжением.'],
+            ['name' => 'Bih Jolokia x Sugar Rush Red', 'scoville_min' => 800000, 'scoville_max' => 1000000, 'description' => 'Кросс индийской Bih Jolokia и сладкого Sugar Rush. Необычное сочетание: сладкий старт с фруктовыми нотами, плавно переходящий в серьёзную остроту.'],
+            ['name' => 'Trinidad Hornet', 'scoville_min' => 1200000, 'scoville_max' => 1700000, 'description' => 'Перец с характерным «хвостиком-жалом». Тропический сладко-фруктовый аромат и обжигающая острота, которая приходит волнами и не отпускает.'],
+        ];
+
+        $stmt = $this->pdo->prepare("INSERT OR IGNORE INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))");
+        $stmt->execute(['peppers', json_encode($peppers, JSON_UNESCAPED_UNICODE)]);
+        $stmt->execute(['peppers_page_title', 'Наши перцы']);
+        $stmt->execute(['peppers_page_intro', 'Мы выращиваем собственные сверхострые перцы для наших соусов. От классического Habanero до рекордсмена Carolina Reaper — каждый сорт привносит уникальный вкус и характер остроты.']);
+    }
+
     public function getPdo(): PDO
     {
         return $this->pdo;
@@ -266,10 +298,15 @@ class Database
         $fields = [];
         $params = ['id' => $id];
 
-        // Auto-update slug when name changes
+        // Auto-update slug when name changes (skip if name is empty)
         if (array_key_exists('name', $data)) {
-            $newSlug = self::generateSlug(trim((string)$data['name']));
-            $data['slug'] = $this->ensureUniqueSlug($newSlug, $id);
+            $trimmedName = trim((string)$data['name']);
+            if ($trimmedName === '') {
+                unset($data['name']);
+            } else {
+                $newSlug = self::generateSlug($trimmedName);
+                $data['slug'] = $this->ensureUniqueSlug($newSlug, $id);
+            }
         }
 
         $sanitizers = [

@@ -100,6 +100,7 @@ $errorMiddleware->setErrorHandler(
     function (Request $request, \Throwable $exception, bool $displayErrorDetails) use ($config) {
         $response = new \Slim\Psr7\Response();
         $title = 'Страница не найдена — RAGE FILL';
+        $contactTg = htmlspecialchars($config['contact_telegram'] ?? '', ENT_QUOTES, 'UTF-8');
         ob_start();
         include __DIR__ . '/../templates/product-404.php';
         $html = ob_get_clean();
@@ -112,6 +113,7 @@ $errorMiddleware->setErrorHandler(
     function (Request $request, \Throwable $exception, bool $displayErrorDetails) use ($config) {
         $response = new \Slim\Psr7\Response();
         $title = 'Страница не найдена — RAGE FILL';
+        $contactTg = htmlspecialchars($config['contact_telegram'] ?? '', ENT_QUOTES, 'UTF-8');
         ob_start();
         include __DIR__ . '/../templates/product-404.php';
         $html = ob_get_clean();
@@ -123,9 +125,8 @@ $errorMiddleware->setErrorHandler(
 // CORS middleware
 $app->add(function (Request $request, $handler) use ($config) {
     $response = $handler->handle($request);
-    $origin = $config['base_url'] ?? '*';
     $response = $response
-        ->withHeader('Access-Control-Allow-Origin', $origin)
+        ->withHeader('Access-Control-Allow-Origin', '*')
         ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 
@@ -180,15 +181,37 @@ $app->get('/api/categories', function (Request $request, Response $response) use
 
 // --- Auth ---
 
-$app->post('/api/auth/login', function (Request $request, Response $response) use ($auth) {
+$app->post('/api/auth/login', function (Request $request, Response $response) use ($auth, $config) {
+    // Rate limiting: max 5 attempts per IP per 15 minutes
+    $ip = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
+    $rateLimitDir = dirname($config['db_path']) . '/rate_limit';
+    if (!is_dir($rateLimitDir)) @mkdir($rateLimitDir, 0755, true);
+    $rateLimitFile = $rateLimitDir . '/' . md5($ip) . '.json';
+    $maxAttempts = 5;
+    $windowSeconds = 900;
+    $attempts = [];
+    if (is_file($rateLimitFile)) {
+        $attempts = json_decode(file_get_contents($rateLimitFile), true) ?: [];
+        $attempts = array_values(array_filter($attempts, fn($t) => $t > time() - $windowSeconds));
+    }
+    if (count($attempts) >= $maxAttempts) {
+        $response->getBody()->write(json_encode(['error' => 'Слишком много попыток. Попробуйте через 15 минут.']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(429);
+    }
+
     $data = $request->getParsedBody();
     $password = (string)($data['password'] ?? '');
 
     $token = $auth->generateToken($password);
     if (!$token) {
+        $attempts[] = time();
+        file_put_contents($rateLimitFile, json_encode($attempts));
         $response->getBody()->write(json_encode(['error' => 'Неверный пароль']));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
     }
+
+    // Clear attempts on successful login
+    if (is_file($rateLimitFile)) @unlink($rateLimitFile);
 
     $response->getBody()->write(json_encode(['token' => $token]));
     return $response->withHeader('Content-Type', 'application/json');
@@ -310,10 +333,12 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         $order = $data['order'] ?? [];
         if (is_array($order)) {
             $pdo = $db->getPdo();
+            $pdo->beginTransaction();
             $stmt = $pdo->prepare("UPDATE sauces SET sort_order = ? WHERE id = ?");
             foreach ($order as $i => $id) {
                 $stmt->execute([$i, (int)$id]);
             }
+            $pdo->commit();
         }
         $response->getBody()->write(json_encode(['success' => true]));
         return $response->withHeader('Content-Type', 'application/json');
@@ -439,6 +464,7 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
             'featured_title', 'featured_product_ids',
             'section_title_benefits', 'section_title_reviews', 'section_title_faq',
             'footer_tagline', 'footer_about',
+            'peppers', 'peppers_page_title', 'peppers_page_intro',
         ];
 
         $toSave = [];
@@ -491,10 +517,12 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         $order = $data['order'] ?? [];
         if (is_array($order)) {
             $pdo = $db->getPdo();
+            $pdo->beginTransaction();
             $stmt = $pdo->prepare("UPDATE categories SET sort_order = ? WHERE id = ?");
             foreach ($order as $i => $id) {
                 $stmt->execute([$i, (int)$id]);
             }
+            $pdo->commit();
         }
         $response->getBody()->write(json_encode(['success' => true]));
         return $response->withHeader('Content-Type', 'application/json');
@@ -647,6 +675,63 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
         return $response->withHeader('Content-Type', 'application/json');
     });
 
+    // Upload pepper image
+    $group->post('/peppers/upload', function (Request $request, Response $response) use ($config) {
+        $files = $request->getUploadedFiles();
+        $file = $files['image'] ?? null;
+        if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
+            $response->getBody()->write(json_encode(['error' => 'No file']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $peppersDir = __DIR__ . '/uploads/peppers/';
+        if (!is_dir($peppersDir)) mkdir($peppersDir, 0755, true);
+
+        $stream = $file->getStream();
+        $tmpPath = tempnam(sys_get_temp_dir(), 'ragefill_pep_');
+        file_put_contents($tmpPath, $stream);
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $realMime = $finfo->file($tmpPath);
+        if (!in_array($realMime, $config['allowed_types'], true)) {
+            unlink($tmpPath);
+            $response->getBody()->write(json_encode(['error' => 'Invalid type']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $filename = bin2hex(random_bytes(16)) . '.webp';
+
+        $src = match ($realMime) {
+            'image/jpeg' => @imagecreatefromjpeg($tmpPath),
+            'image/png' => @imagecreatefrompng($tmpPath),
+            'image/webp' => @imagecreatefromwebp($tmpPath),
+            default => false,
+        };
+        if ($src) {
+            $w = imagesx($src);
+            $h = imagesy($src);
+            $maxW = 400;
+            if ($w > $maxW) {
+                $newH = (int)round($h * $maxW / $w);
+                $dst = imagecreatetruecolor($maxW, $newH);
+                imagealphablending($dst, false);
+                imagesavealpha($dst, true);
+                imagecopyresampled($dst, $src, 0, 0, 0, 0, $maxW, $newH, $w, $h);
+                imagedestroy($src);
+                $src = $dst;
+            }
+            imagewebp($src, $peppersDir . $filename, 85);
+            imagedestroy($src);
+            unlink($tmpPath);
+        } else {
+            rename($tmpPath, $peppersDir . $filename);
+        }
+        @chmod($peppersDir . $filename, 0644);
+
+        $response->getBody()->write(json_encode(['filename' => $filename]));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
 })->add($auth);
 
 // --- SEO: robots.txt ---
@@ -759,17 +844,34 @@ $app->get('/privacy', function (Request $request, Response $response) use ($conf
     return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
 });
 
+$app->get('/peppers', function (Request $request, Response $response) use ($config, $seo, $db) {
+    $html = renderPeppersPage($config, $seo, $db);
+    $response->getBody()->write($html);
+    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+});
+
 $app->run();
 
 // --- Helpers ---
 
 function handleUpload(object $uploadedFile, array $config): ?string
 {
+    // Check reported size before writing to disk (early rejection of huge uploads)
+    $reportedSize = $uploadedFile->getSize();
+    if ($reportedSize !== null && $reportedSize > $config['max_upload_size']) {
+        return null;
+    }
+
     // Validate by actual file content, not client-provided MIME
-    $tmpPath = null;
     $stream = $uploadedFile->getStream();
     $tmpPath = tempnam(sys_get_temp_dir(), 'ragefill_');
     file_put_contents($tmpPath, $stream);
+
+    $size = filesize($tmpPath);
+    if ($size > $config['max_upload_size']) {
+        unlink($tmpPath);
+        return null;
+    }
 
     $finfo = new \finfo(FILEINFO_MIME_TYPE);
     $realMime = $finfo->file($tmpPath);
@@ -782,12 +884,6 @@ function handleUpload(object $uploadedFile, array $config): ?string
     // Additional validation: must be a real image
     $imageInfo = @getimagesize($tmpPath);
     if ($imageInfo === false) {
-        unlink($tmpPath);
-        return null;
-    }
-
-    $size = filesize($tmpPath);
-    if ($size > $config['max_upload_size']) {
         unlink($tmpPath);
         return null;
     }
@@ -1064,13 +1160,141 @@ function renderPrivacyPage(array $config, SeoHelper $seo, Database $db): string
     return render('privacy.php', compact('title', 'metaTags', 'contactTg', 'footerTagline', 'footerAbout'));
 }
 
+function renderPeppersPage(array $config, SeoHelper $seo, Database $db): string
+{
+    $baseUrl = rtrim($config['base_url'], '/');
+    $title = 'Сорта перцев для соусов — RAGE FILL | Шкала Сковилла';
+    $desc = 'Перцы RAGE FILL: Carolina Reaper, Trinidad Scorpion, Habanero и другие. Уровни остроты по шкале Сковилла, описания и характеристики сверхострых перцев.';
+    $url = $baseUrl . '/peppers';
+    $metaTags = $seo->buildAboutMeta($title, $desc, $url);
+    $hreflangUrl = $url;
+    $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
+
+    $settings = $db->getAllSettings();
+    $peppersRaw = $settings['peppers'] ?? null;
+    $peppers = $peppersRaw !== null ? (json_decode($peppersRaw, true) ?? []) : [];
+
+    usort($peppers, fn($a, $b) => ($b['scoville_max'] ?? 0) <=> ($a['scoville_max'] ?? 0));
+
+    $pageTitle = htmlspecialchars($settings['peppers_page_title'] ?? 'Наши перцы', ENT_QUOTES, 'UTF-8');
+    $pageIntro = htmlspecialchars($settings['peppers_page_intro'] ?? '', ENT_QUOTES, 'UTF-8');
+
+    $maxScoville = 1;
+    foreach ($peppers as $p) {
+        $s = (int)($p['scoville_max'] ?? 0);
+        if ($s > $maxScoville) $maxScoville = $s;
+    }
+
+    $peppersHtml = '';
+    $jsonLdItems = [];
+    foreach ($peppers as $idx => $p) {
+        $name = htmlspecialchars($p['name'] ?? '', ENT_QUOTES, 'UTF-8');
+        $sMin = (int)($p['scoville_min'] ?? 0);
+        $sMax = (int)($p['scoville_max'] ?? 0);
+        $descText = htmlspecialchars($p['description'] ?? '', ENT_QUOTES, 'UTF-8');
+        $pct = round($sMax / $maxScoville * 100);
+        $slug = preg_replace('/[^a-z0-9]+/', '-', strtolower($p['name'] ?? ''));
+        $slug = trim($slug, '-') ?: 'pepper-' . ($idx + 1);
+        $image = $p['image'] ?? '';
+        $imageSafe = htmlspecialchars($image, ENT_QUOTES, 'UTF-8');
+
+        $tier = match (true) {
+            $sMax >= 2000000 => 'extreme',
+            $sMax >= 1500000 => 'fire',
+            $sMax >= 1000000 => 'hot',
+            $sMax >= 500000 => 'medium',
+            default => 'mild',
+        };
+
+        $sMinFmt = number_format($sMin, 0, '', ' ');
+        $sMaxFmt = number_format($sMax, 0, '', ' ');
+        $imgHtml = $image
+            ? '<img class="pepper-row__img" src="/uploads/peppers/' . $imageSafe . '" alt="' . $name . '" loading="lazy">'
+            : '<div class="pepper-row__img-placeholder"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 1.5.7 2.8 1.8 3.7L8 22h8l-1.3-11.8c1.1-.9 1.8-2.2 1.8-3.7C16.5 4 14.5 2 12 2z"/></svg></div>';
+
+        $peppersHtml .= <<<HTML
+            <tr class="pepper-row pepper-row--{$tier}" id="{$slug}">
+                <td class="pepper-row__accent-cell"><div class="pepper-row__accent"></div></td>
+                <td class="pepper-row__photo">{$imgHtml}</td>
+                <td class="pepper-row__name"><h2>{$name}</h2></td>
+                <td class="pepper-row__shu"><data value="{$sMax}">{$sMinFmt} — {$sMaxFmt}</data><span class="pepper-row__shu-unit">SHU</span></td>
+                <td class="pepper-row__bar"><div class="pepper-row__bar-track"><div class="pepper-row__bar-fill pepper-row__bar-fill--{$tier}" style="width:{$pct}%"></div></div></td>
+                <td class="pepper-row__desc">{$descText}</td>
+                <td class="pepper-row__expand-btn"><button type="button" class="pepper-expand" aria-label="Подробнее"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button></td>
+            </tr>
+            <tr class="pepper-row__detail pepper-row__detail--{$tier}" aria-hidden="true">
+                <td colspan="7">
+                    <div class="pepper-detail__inner">
+                        <div class="pepper-detail__img-wrap">{$imgHtml}</div>
+                        <p class="pepper-detail__text">{$descText}</p>
+                    </div>
+                </td>
+            </tr>
+        HTML;
+
+        $jsonLdItems[] = [
+            '@type' => 'ListItem',
+            'position' => $idx + 1,
+            'name' => $p['name'] ?? '',
+            'url' => $url . '#' . $slug,
+        ];
+    }
+
+    // JSON-LD: BreadcrumbList
+    $breadcrumbLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Главная', 'item' => $baseUrl . '/'],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Наши перцы', 'item' => $url],
+        ],
+    ];
+
+    // JSON-LD: ItemList
+    $itemListLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'ItemList',
+        'name' => 'Сорта перцев RAGE FILL',
+        'numberOfItems' => count($peppers),
+        'itemListElement' => $jsonLdItems,
+    ];
+
+    $jsonLdFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG;
+    $extraHead = '<script type="application/ld+json">' . json_encode($breadcrumbLd, $jsonLdFlags) . '</script>' . "\n"
+        . '    <script type="application/ld+json">' . json_encode($itemListLd, $jsonLdFlags) . '</script>';
+
+    $footerVars = getFooterVars($db);
+    $footerTagline = $footerVars['footerTagline'];
+    $footerAbout = $footerVars['footerAbout'];
+
+    return render('peppers.php', compact(
+        'title', 'metaTags', 'extraHead', 'hreflangUrl', 'contactTg',
+        'pageTitle', 'pageIntro', 'peppersHtml',
+        'footerTagline', 'footerAbout'
+    ));
+}
+
 function sanitizeHtml(string $html): string
 {
-    // Step 1: strip all tags except safe formatting ones
-    $clean = strip_tags($html, '<p><br><strong><em><ul><ol><li>');
+    // Step 1: strip all tags except safe formatting ones + links
+    $clean = strip_tags($html, '<p><br><strong><em><ul><ol><li><a>');
 
-    // Step 2: remove ALL attributes from remaining tags (prevents onmouseover, onclick, style, etc.)
-    $clean = preg_replace('/<(\w+)\s+[^>]*>/i', '<$1>', $clean);
+    // Step 2: preserve safe href on <a>, strip all other attributes from all tags
+    // First, extract and protect safe href attributes on <a> tags
+    $clean = preg_replace_callback('/<a\s+[^>]*>/i', function ($m) {
+        if (preg_match('/href\s*=\s*"([^"]*)"/', $m[0], $href)) {
+            $url = $href[1];
+            // Only allow http(s) and mailto links
+            if (preg_match('#^(https?://|mailto:)#i', $url)) {
+                $safeUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+                return '<a href="' . $safeUrl . '" target="_blank" rel="noopener">';
+            }
+        }
+        return '<a>';
+    }, $clean);
+
+    // Step 3: remove ALL attributes from remaining (non-<a>) tags
+    $clean = preg_replace('/<(?!a[\s>])(\w+)\s+[^>]*>/i', '<$1>', $clean);
 
     return $clean;
 }
@@ -1109,10 +1333,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     // Load site settings from DB (with fallbacks)
     $siteSettings = $db->getAllSettings();
 
-    $contactTg = htmlspecialchars(
-        $siteSettings['contact_telegram'] ?? $config['contact_telegram'] ?? 'rage_fill',
-        ENT_QUOTES, 'UTF-8'
-    );
+    $contactTgRaw = $siteSettings['contact_telegram'] ?? $config['contact_telegram'] ?? 'rage_fill';
+    $contactTg = htmlspecialchars($contactTgRaw, ENT_QUOTES, 'UTF-8');
     $baseUrl = rtrim($config['base_url'], '/');
     // SEO
     $title = 'RAGE FILL — Острые соусы ручной работы | Минск, Беларусь';
@@ -1133,7 +1355,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         ];
     }
     $faqJsonLd = '<script type="application/ld+json">'
-        . json_encode($faqLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
+        . json_encode($faqLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_PRETTY_PRINT)
         . '</script>';
     $orgJsonLd = $seo->organizationJsonLd();
     $websiteJsonLd = $seo->websiteJsonLd();
@@ -1220,7 +1442,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $faqHtml = '';
     foreach ($faqItems as $item) {
         $q = htmlspecialchars($item['question'], ENT_QUOTES, 'UTF-8');
-        $a = $item['answer'];
+        $a = sanitizeHtml($item['answer']);
         $faqHtml .= <<<HTML
             <details class="faq__item" data-aos="fade-up">
                 <summary class="faq__question">{$q}</summary>
@@ -1273,8 +1495,8 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $heroBtnPrimary = htmlspecialchars($siteSettings['hero_btn_primary'] ?? 'Смотреть каталог', ENT_QUOTES, 'UTF-8');
     $heroBtnSecondary = htmlspecialchars($siteSettings['hero_btn_secondary'] ?? 'Написать нам', ENT_QUOTES, 'UTF-8');
 
-    // About text — from DB or default
-    $aboutText = $siteSettings['about_text'] ?? DEFAULT_ABOUT;
+    // About text — from DB or default (sanitize to prevent stored XSS)
+    $aboutText = sanitizeHtml($siteSettings['about_text'] ?? DEFAULT_ABOUT);
 
     // Testimonials — from DB or default
     $testimonialsRaw = $siteSettings['testimonials'] ?? null;
@@ -1305,7 +1527,7 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
     $hreflangUrl = $url;
     return render('home.php', compact(
         'title', 'metaTags', 'hreflangUrl', 'faqJsonLd', 'orgJsonLd', 'websiteJsonLd',
-        'contactTg', 'featuredHtml', 'featuredJson', 'featuredTitle', 'benefitsHtml',
+        'contactTg', 'contactTgRaw', 'featuredHtml', 'featuredJson', 'featuredTitle', 'benefitsHtml',
         'faqHtml', 'reviewsHtml', 'reviewSrcsJson',
         'heroTagline', 'heroDesc', 'heroBtnPrimary', 'heroBtnSecondary',
         'aboutText', 'testimonialsHtml', 'instagramReviewsUrl',

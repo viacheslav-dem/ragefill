@@ -37,10 +37,20 @@ $botToken = $config['bot_token'];
 $webAppUrl = $config['base_url'];
 $contactTg = $config['contact_telegram'];
 
-// One-time setup endpoint: GET /bot.php?setup=1
-if (isset($_GET['setup']) && $_GET['setup'] === '1') {
+// One-time setup endpoint: CLI only (php bot.php setup)
+if (php_sapi_name() === 'cli' && ($argv[1] ?? '') === 'setup') {
     setupBot($botToken, $webAppUrl);
     exit;
+}
+
+// Verify Telegram webhook secret
+$webhookSecret = $config['webhook_secret'] ?? '';
+if ($webhookSecret !== '') {
+    $headerSecret = $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '';
+    if (!hash_equals($webhookSecret, $headerSecret)) {
+        http_response_code(403);
+        exit;
+    }
 }
 
 $input = file_get_contents('php://input');
@@ -165,24 +175,24 @@ function sendMessage(string $token, int $chatId, string $text, ?array $replyMark
 
 function setupBot(string $token, string $webAppUrl): void
 {
-    header('Content-Type: text/plain; charset=utf-8');
+    if (php_sapi_name() !== 'cli') {
+        header('Content-Type: text/plain; charset=utf-8');
+    }
 
-    // 1. Set commands
-    $commands = json_encode([
+    // 1. Set commands (pass array, not pre-encoded JSON — botApiCall encodes the whole payload)
+    $r1 = botApiCall($token, 'setMyCommands', ['commands' => [
         ['command' => 'start', 'description' => 'Открыть каталог соусов'],
         ['command' => 'contact', 'description' => 'Связаться с нами'],
         ['command' => 'help', 'description' => 'Список команд'],
-    ], JSON_UNESCAPED_UNICODE);
-    $r1 = botApiCall($token, 'setMyCommands', ['commands' => $commands]);
+    ]]);
     echo "setMyCommands: {$r1}\n";
 
-    // 2. Set menu button → opens Mini App
-    $menuButton = json_encode([
+    // 2. Set menu button → opens Mini App (pass array, not pre-encoded JSON)
+    $r2 = botApiCall($token, 'setChatMenuButton', ['menu_button' => [
         'type' => 'web_app',
         'text' => 'Каталог',
         'web_app' => ['url' => $webAppUrl],
-    ], JSON_UNESCAPED_UNICODE);
-    $r2 = botApiCall($token, 'setChatMenuButton', ['menu_button' => $menuButton]);
+    ]]);
     echo "setChatMenuButton: {$r2}\n";
 
     // 3. Set bot description (before /start screen)

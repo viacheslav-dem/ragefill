@@ -49,6 +49,11 @@
                 <span>Категории</span>
                 <span class="cms-nav__badge" id="nav-categories-count"></span>
             </button>
+            <button class="cms-nav__item" data-tab="peppers">
+                <svg class="cms-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 1.5.7 2.8 1.8 3.7L8 22h8l-1.3-11.8c1.1-.9 1.8-2.2 1.8-3.7C16.5 4 14.5 2 12 2z"/></svg>
+                <span>Наши перцы</span>
+                <span class="cms-nav__badge" id="nav-peppers-count"></span>
+            </button>
             <button class="cms-nav__item" data-tab="site">
                 <svg class="cms-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                 <span>Главная страница</span>
@@ -141,6 +146,38 @@
         </div>
 
         <!-- Page: Site Settings -->
+        <div class="cms-page" id="tab-peppers" style="display:none">
+            <div class="cms-page__header">
+                <div>
+                    <h1 class="cms-page__title">Наши перцы</h1>
+                    <div class="cms-page__subtitle">Управление страницей /peppers</div>
+                </div>
+                <button type="button" class="cms-btn cms-btn--primary" id="peppers-save-btn">
+                    <span class="btn-spinner"></span>
+                    <span class="btn-text"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Сохранить</span>
+                </button>
+            </div>
+            <form id="peppers-settings-form" class="cms-settings">
+                <div class="form-group">
+                    <label for="ss-peppers-page-title">Заголовок страницы</label>
+                    <input type="text" id="ss-peppers-page-title" class="form-input" placeholder="Наши перцы" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="ss-peppers-page-intro">Вступительный текст</label>
+                    <textarea id="ss-peppers-page-intro" class="form-input" rows="3" placeholder="Мы выращиваем собственные сверхострые перцы…"></textarea>
+                </div>
+                <div class="pepper-admin-controls">
+                    <button type="button" id="peppers-collapse-all" class="cms-link-btn" title="Свернуть все">Свернуть все</button>
+                    <button type="button" id="peppers-expand-all" class="cms-link-btn" title="Развернуть все">Развернуть все</button>
+                </div>
+                <div id="ss-peppers-list" class="cms-repeater"></div>
+                <button type="button" id="ss-peppers-add" class="cms-repeater__add">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Добавить перец
+                </button>
+            </form>
+        </div>
+
         <div class="cms-page" id="tab-site" style="display:none">
             <div class="cms-page__header">
                 <div>
