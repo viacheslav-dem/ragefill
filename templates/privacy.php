@@ -47,11 +47,16 @@ $includeTgScript = false;
         (function(){
             var saved=localStorage.getItem('ragefill-theme');
             if(saved==='dark') document.body.classList.add('tg-dark');
+            else if(!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('tg-dark');
+            var meta=document.getElementById('meta-theme-color');
+            function syncThemeColor(){ if(meta) meta.content=document.body.classList.contains('tg-dark')?'#161210':'#0a0a0a'; }
+            syncThemeColor();
             var btn=document.getElementById('theme-toggle');
             if(!btn) return;
             btn.addEventListener('click',function(){
                 var isDark=document.body.classList.toggle('tg-dark');
                 localStorage.setItem('ragefill-theme',isDark?'dark':'light');
+                syncThemeColor();
             });
         })();
         (function(){

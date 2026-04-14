@@ -797,7 +797,25 @@ $app->get('/catalog', function (Request $request, Response $response) use ($db, 
     $html = str_replace('{{SEO_JSONLD}}', $seo->catalogJsonLd($sauces) . "\n" . $seo->websiteJsonLd(), $html);
     $html = str_replace('{{HREFLANG_URL}}', $baseUrl . '/catalog', $html);
     $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
-    $html = str_replace('{{CONTACT_TG}}', $contactTg, $html);
+
+    // Render shared header partial
+    $headerClass = 'header--catalog';
+    $headerBrowserOnly = true;
+    $headerSearchId = 'desktop-search-input';
+    $headerTgSubtitle = 'КАТАЛОГ СВЕРХОСТРЫХ СОУСОВ';
+    ob_start();
+    include __DIR__ . '/../templates/partials/header.php';
+    $headerHtml = ob_get_clean();
+    $html = str_replace('{{HEADER}}', $headerHtml, $html);
+
+    // Render shared footer partial
+    $footerVars = getFooterVars($db);
+    $footerTagline = $footerVars['footerTagline'];
+    $footerAbout = $footerVars['footerAbout'];
+    ob_start();
+    include __DIR__ . '/../templates/partials/footer.php';
+    $footerHtml = ob_get_clean();
+    $html = str_replace('{{FOOTER}}', $footerHtml, $html);
 
     // Dynamic category chips/sidebar from DB
     $cats = $db->getAllCategories();
@@ -1209,7 +1227,7 @@ function renderPeppersPage(array $config, SeoHelper $seo, Database $db): string
         $sMinFmt = number_format($sMin, 0, '', ' ');
         $sMaxFmt = number_format($sMax, 0, '', ' ');
         $imgHtml = $image
-            ? '<img class="pepper-row__img" src="/uploads/peppers/' . $imageSafe . '" alt="' . $name . '" loading="lazy">'
+            ? '<img class="pepper-row__img" src="/uploads/peppers/' . $imageSafe . '" alt="' . $name . '" width="80" height="80" loading="lazy">'
             : '<div class="pepper-row__img-placeholder"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 1.5.7 2.8 1.8 3.7L8 22h8l-1.3-11.8c1.1-.9 1.8-2.2 1.8-3.7C16.5 4 14.5 2 12 2z"/></svg></div>';
 
         $peppersHtml .= <<<HTML
@@ -1217,16 +1235,21 @@ function renderPeppersPage(array $config, SeoHelper $seo, Database $db): string
                 <td class="pepper-row__accent-cell"><div class="pepper-row__accent"></div></td>
                 <td class="pepper-row__photo">{$imgHtml}</td>
                 <td class="pepper-row__name"><h2>{$name}</h2></td>
-                <td class="pepper-row__shu"><data value="{$sMax}">{$sMinFmt} — {$sMaxFmt}</data><span class="pepper-row__shu-unit">SHU</span></td>
-                <td class="pepper-row__bar"><div class="pepper-row__bar-track"><div class="pepper-row__bar-fill pepper-row__bar-fill--{$tier}" style="width:{$pct}%"></div></div></td>
+                <td class="pepper-row__shu"><data value="{$sMax}">{$sMinFmt} — {$sMaxFmt}</data><span class="pepper-row__shu-unit">SHU</span><div class="pepper-row__shu-bar"><div class="pepper-row__bar-track"><div class="pepper-row__bar-fill pepper-row__bar-fill--{$tier}" style="width:{$pct}%"></div></div></div></td>
                 <td class="pepper-row__desc">{$descText}</td>
-                <td class="pepper-row__expand-btn"><button type="button" class="pepper-expand" aria-label="Подробнее"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button></td>
+                <td class="pepper-row__expand-btn"><button type="button" class="pepper-expand" aria-label="Подробнее" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button></td>
+                <td class="pepper-row__heat-bottom"><div class="pepper-row__heat-bottom-fill"></div></td>
             </tr>
             <tr class="pepper-row__detail pepper-row__detail--{$tier}" aria-hidden="true">
                 <td colspan="7">
                     <div class="pepper-detail__inner">
                         <div class="pepper-detail__img-wrap">{$imgHtml}</div>
+                        <div class="pepper-detail__meta">
+                            <div class="pepper-detail__shu"><data value="{$sMax}">{$sMinFmt} — {$sMaxFmt}</data> <span class="pepper-row__shu-unit">SHU</span></div>
+                            <div class="pepper-detail__bar"><div class="pepper-row__bar-track"><div class="pepper-row__bar-fill pepper-row__bar-fill--{$tier}" style="width:{$pct}%"></div></div></div>
+                        </div>
                         <p class="pepper-detail__text">{$descText}</p>
+                        <a href="/catalog?q={$name}" class="pepper-detail__catalog-link">Смотреть соусы в каталоге</a>
                     </div>
                 </td>
             </tr>

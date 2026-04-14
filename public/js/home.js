@@ -37,11 +37,16 @@
     (function() {
         var saved = localStorage.getItem('ragefill-theme');
         if (saved === 'dark') document.body.classList.add('tg-dark');
+        else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('tg-dark');
+        var meta = document.getElementById('meta-theme-color');
+        function syncThemeColor() { if (meta) meta.content = document.body.classList.contains('tg-dark') ? '#161210' : '#0a0a0a'; }
+        syncThemeColor();
         var btn = document.getElementById('theme-toggle');
         if (!btn) return;
         btn.addEventListener('click', function() {
             var isDark = document.body.classList.toggle('tg-dark');
             localStorage.setItem('ragefill-theme', isDark ? 'dark' : 'light');
+            syncThemeColor();
         });
     })();
 
@@ -76,12 +81,14 @@
 
     // Home search → redirect to catalog
     (function() {
-        var input = document.getElementById('home-search-input');
-        if (!input) return;
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && input.value.trim()) {
-                window.location.href = '/catalog?q=' + encodeURIComponent(input.value.trim());
-            }
+        ['home-search-input', 'desktop-search-input'].forEach(function(id) {
+            var input = document.getElementById(id);
+            if (!input) return;
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && input.value.trim()) {
+                    window.location.href = '/catalog?q=' + encodeURIComponent(input.value.trim());
+                }
+            });
         });
     })();
 
@@ -174,13 +181,24 @@
 
             overlay.classList.add('active');
             document.body.classList.add('modal-open');
+            history.pushState({ ragefillModal: 'home' }, '');
             modal.scrollTop = 0;
         }
 
+        var _homeClosingViaPopstate = false;
         function closeModal() {
+            if (!overlay.classList.contains('active')) return;
             overlay.classList.remove('active');
             document.body.classList.remove('modal-open');
+            if (!_homeClosingViaPopstate) history.back();
         }
+        window.addEventListener('popstate', function() {
+            if (overlay.classList.contains('active')) {
+                _homeClosingViaPopstate = true;
+                closeModal();
+                _homeClosingViaPopstate = false;
+            }
+        });
 
         closeBtn.addEventListener('click', closeModal);
         overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });

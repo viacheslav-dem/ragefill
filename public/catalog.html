@@ -6,49 +6,22 @@
     <title>{{SEO_TITLE}}</title>
     {{SEO_META}}
     <link rel="alternate" hreflang="ru-BY" href="{{HREFLANG_URL}}">
+    <link rel="alternate" hreflang="x-default" href="{{HREFLANG_URL}}">
+    <link rel="preload" href="/fonts/manrope-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/oswald-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/css/fonts.css?v={{V_FONTS}}">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#0a0a0a" id="meta-theme-color">
     <link rel="stylesheet" href="/css/style.css?v={{V_STYLE}}">
-    <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
+    <link rel="preconnect" href="https://telegram.org">
+    <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false" defer></script>
 
 </head>
 <body>
 
-<!-- Header -->
-<header class="header header--catalog">
-    <div class="header__inner">
-        <a href="/" class="header__logo-link" aria-label="На главную"><div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div></a>
-        <nav class="header__nav browser-only-link" id="main-nav">
-            <a href="/" class="header__nav-link">Главная</a>
-            <a href="/#benefits" class="header__nav-link">О нас</a>
-            <a href="/peppers" class="header__nav-link">Наши перцы</a>
-            <a href="https://t.me/{{CONTACT_TG}}" class="header__nav-link header__nav-link--cta" target="_blank" rel="noopener">Написать нам</a>
-        </nav>
-        <!-- Desktop search bar (synced with mobile search) -->
-        <div class="header__desktop-search">
-            <svg class="header__search-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
-                <path d="m17 17 4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-            <label for="desktop-search-input" class="visually-hidden">Поиск по каталогу</label>
-            <input type="text" class="header__search-input" id="desktop-search-input" placeholder="Поиск по каталогу..." autocomplete="off">
-        </div>
-        <div class="header__actions">
-            <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
-                <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-            </button>
-            <button class="burger-btn browser-only-link" id="burger-btn" aria-label="Меню" aria-expanded="false">
-                <span class="burger-btn__line"></span>
-                <span class="burger-btn__line"></span>
-                <span class="burger-btn__line"></span>
-            </button>
-        </div>
-    </div>
-</header>
+{{HEADER}}
 
 <main id="main-content">
 
@@ -246,52 +219,9 @@
     </div>
 </div>
 
-<footer class="site-footer">
-    <div class="site-footer__inner">
-        <div class="site-footer__brand">
-            <div class="site-footer__logo">
-                <span class="site-footer__logo-rage">RAGE</span>
-                <span class="site-footer__logo-fill">FILL</span>
-            </div>
-            <div class="site-footer__text">Острые соусы ручной работы, Беларусь</div>
-        </div>
-        <div class="site-footer__contact">
-            <h4 class="site-footer__heading">Контакты</h4>
-            <nav class="site-footer__links" aria-label="Контакты">
-                <a href="https://t.me/rage_fill" target="_blank" rel="noopener noreferrer">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.904-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.484-.429-.008-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141a.506.506 0 01.171.325c.016.093.036.306.02.472z"/></svg>
-                    Telegram
-                </a>
-                <a href="https://instagram.com/rage_fill" target="_blank" rel="noopener noreferrer">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                    Instagram
-                </a>
-            </nav>
-        </div>
-        <div class="site-footer__nav">
-            <h4 class="site-footer__heading">Навигация</h4>
-            <nav class="site-footer__links" aria-label="Навигация">
-                <a href="/">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                    Главная
-                </a>
-                <a href="/catalog" class="browser-only-link">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-                    Каталог
-                </a>
-            </nav>
-        </div>
-        <div class="site-footer__about">
-            <h4 class="site-footer__heading">О продукте</h4>
-            <p class="site-footer__about-text">Все соусы изготавливаются вручную из свежих перцев. Для заказа свяжитесь с нами через Telegram.</p>
-        </div>
-    </div>
-    <div class="site-footer__bottom">
-        <div class="site-footer__copy">&copy; <span id="footer-year">2026</span> RAGE FILL. Все права защищены.</div>
-    </div>
-</footer>
+{{FOOTER}}
 
-<script src="/js/scroll-top.js?v={{V_SCROLL}}" data-cfasync="false"></script>
+<script src="/js/scroll-top.js?v={{V_SCROLL}}" defer></script>
 <script src="/js/catalog.js?v={{V_CATALOG}}" data-cfasync="false"></script>
 <script data-cfasync="false">
 (function(){

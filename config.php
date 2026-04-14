@@ -35,5 +35,5 @@ return [
     'webhook_secret' => '',
 
     // Debug mode
-    'debug' => true,
+    'debug' => false,
 ];

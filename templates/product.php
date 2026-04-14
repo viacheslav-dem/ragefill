@@ -24,32 +24,14 @@
  * @var string $relatedHtml
  */
 $extraHead = $jsonLd . "\n" . $breadcrumbLd;
+$headerClass = 'header--catalog';
+$headerBrowserOnly = true;
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <?php include __DIR__ . '/partials/head.php'; ?>
 <body>
-    <header class="header header--catalog">
-        <div class="header__inner">
-            <a href="/" class="header__logo-link" aria-label="На главную"><div class="header__logo" aria-hidden="true"><span class="header__logo-rage">RAGE</span> <span class="header__logo-fill">FILL</span></div></a>
-            <nav class="header__nav browser-only-link" id="main-nav">
-                <a href="/" class="header__nav-link">Главная</a>
-                <a href="/catalog" class="header__nav-link">Каталог</a>
-                <a href="/#faq" class="header__nav-link">Частые вопросы</a>
-            </nav>
-            <div class="header__actions">
-                <button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
-                    <svg class="theme-toggle__sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                    <svg class="theme-toggle__moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                </button>
-                <button class="burger-btn browser-only-link" id="burger-btn" aria-label="Меню" aria-expanded="false">
-                    <span class="burger-btn__line"></span>
-                    <span class="burger-btn__line"></span>
-                    <span class="burger-btn__line"></span>
-                </button>
-            </div>
-        </div>
-    </header>
+    <?php include __DIR__ . '/partials/header.php'; ?>
 
     <main>
     <article class="product-page">
@@ -119,7 +101,7 @@ $extraHead = $jsonLd . "\n" . $breadcrumbLd;
 
     <?php include __DIR__ . '/partials/footer.php'; ?>
 
-    <script src="/js/scroll-top.js?v=<?= asset_v('js/scroll-top.js') ?>" data-cfasync="false"></script>
+    <script src="/js/scroll-top.js?v=<?= asset_v('js/scroll-top.js') ?>" defer></script>
     <script src="/js/lightbox.js?v=<?= asset_v('js/lightbox.js') ?>" data-cfasync="false"></script>
     <script data-cfasync="false">
         const _tgRaw = window.Telegram?.WebApp;
@@ -140,11 +122,16 @@ $extraHead = $jsonLd . "\n" . $breadcrumbLd;
             const saved = localStorage.getItem('ragefill-theme');
             if (saved === 'dark') document.body.classList.add('tg-dark');
             else if (saved === 'light') document.body.classList.remove('tg-dark');
+            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('tg-dark');
+            const meta = document.getElementById('meta-theme-color');
+            function syncThemeColor() { if (meta) meta.content = document.body.classList.contains('tg-dark') ? '#161210' : '#0a0a0a'; }
+            syncThemeColor();
             const btn = document.getElementById('theme-toggle');
             if (!btn) return;
             btn.addEventListener('click', () => {
                 const isDark = document.body.classList.toggle('tg-dark');
                 localStorage.setItem('ragefill-theme', isDark ? 'dark' : 'light');
+                syncThemeColor();
             });
         })();
 

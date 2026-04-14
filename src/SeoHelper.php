@@ -152,12 +152,18 @@ class SeoHelper
                 [
                     '@type' => 'ListItem',
                     'position' => 1,
-                    'name' => 'Каталог',
+                    'name' => 'Главная',
                     'item' => $this->baseUrl . '/',
                 ],
                 [
                     '@type' => 'ListItem',
                     'position' => 2,
+                    'name' => 'Каталог',
+                    'item' => $this->baseUrl . '/catalog',
+                ],
+                [
+                    '@type' => 'ListItem',
+                    'position' => 3,
                     'name' => $productName,
                     'item' => $this->baseUrl . '/sauce/' . $productSlug,
                 ],
@@ -308,14 +314,23 @@ class SeoHelper
      */
     public function generateSitemap(array $sauces): string
     {
+        // Compute latest product update for dynamic pages
+        $latestUpdate = null;
+        foreach ($sauces as $sauce) {
+            $date = $sauce['updated_at'] ?? $sauce['created_at'] ?? null;
+            if ($date && ($latestUpdate === null || $date > $latestUpdate)) {
+                $latestUpdate = $date;
+            }
+        }
+
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 
         // Homepage
-        $xml .= $this->sitemapUrl($this->baseUrl . '/', '1.0', 'weekly');
+        $xml .= $this->sitemapUrl($this->baseUrl . '/', '1.0', 'weekly', $latestUpdate);
 
         // Catalog
-        $xml .= $this->sitemapUrl($this->baseUrl . '/catalog', '0.9', 'daily');
+        $xml .= $this->sitemapUrl($this->baseUrl . '/catalog', '0.9', 'daily', $latestUpdate);
 
         // Privacy policy
         $xml .= $this->sitemapUrl($this->baseUrl . '/privacy', '0.3', 'yearly');

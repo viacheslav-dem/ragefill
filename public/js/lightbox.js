@@ -129,6 +129,8 @@ var Lightbox = (function() {
         }, { passive: true });
     }
 
+    var _lbClosingViaPopstate = false;
+
     function open(opts) {
         build();
         images = opts.images || [];
@@ -140,12 +142,23 @@ var Lightbox = (function() {
         render();
         el.classList.add('active');
         document.body.classList.add('lightbox-open');
+        history.pushState({ ragefillModal: 'lightbox' }, '');
     }
 
     function close() {
+        if (!el.classList.contains('active')) return;
         el.classList.remove('active');
         document.body.classList.remove('lightbox-open');
+        if (!_lbClosingViaPopstate) history.back();
     }
+
+    window.addEventListener('popstate', function() {
+        if (el && el.classList.contains('active')) {
+            _lbClosingViaPopstate = true;
+            close();
+            _lbClosingViaPopstate = false;
+        }
+    });
 
     function navigate(dir) {
         if (single) return;

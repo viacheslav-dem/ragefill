@@ -5,16 +5,20 @@
     <?= $metaTags ?? '' ?>
 <?php if (!empty($hreflangUrl)): ?>
     <link rel="alternate" hreflang="ru-BY" href="<?= $hreflangUrl ?>">
+    <link rel="alternate" hreflang="x-default" href="<?= $hreflangUrl ?>">
 <?php endif; ?>
+    <link rel="preload" href="/fonts/manrope-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/oswald-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/css/fonts.css?v=<?= asset_v('css/fonts.css') ?>">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#0a0a0a" id="meta-theme-color">
     <link rel="stylesheet" href="/css/style.css?v=<?= asset_v('css/style.css') ?>">
 <?= $extraCss ?? '' ?>
 <?php if ($includeTgScript ?? true): ?>
-    <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
+    <link rel="preconnect" href="https://telegram.org">
+    <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false" defer></script>
 <?php endif; ?>
 <?= $extraHead ?? '' ?>
 </head>

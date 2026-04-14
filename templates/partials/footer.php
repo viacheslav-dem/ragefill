@@ -1,7 +1,7 @@
 <footer class="site-footer">
     <div class="site-footer__inner">
         <div class="site-footer__brand">
-            <div class="site-footer__logo"><span class="site-footer__logo-rage">RAGE</span> <span class="site-footer__logo-fill">FILL</span></div>
+            <a href="/" class="site-footer__logo"><span class="site-footer__logo-rage">RAGE</span> <span class="site-footer__logo-fill">FILL</span></a>
             <div class="site-footer__text"><?= $footerTagline ?? 'Острые соусы ручной работы, Беларусь' ?></div>
         </div>
         <div class="site-footer__contact">

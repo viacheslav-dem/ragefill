@@ -28,7 +28,14 @@ if (tg) {
     } else if (saved === 'light') {
         document.body.classList.remove('tg-dark');
         manualTheme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('tg-dark');
+        manualTheme = 'dark';
     }
+
+    const meta = document.getElementById('meta-theme-color');
+    function syncThemeColor() { if (meta) meta.content = document.body.classList.contains('tg-dark') ? '#161210' : '#0a0a0a'; }
+    syncThemeColor();
 
     const btn = document.getElementById('theme-toggle');
     if (!btn) return;
@@ -36,6 +43,7 @@ if (tg) {
         const isDark = document.body.classList.toggle('tg-dark');
         manualTheme = isDark ? 'dark' : 'light';
         localStorage.setItem('ragefill-theme', manualTheme);
+        syncThemeColor();
     });
 })();
 
@@ -266,8 +274,9 @@ function renderCard(sauce, index) {
         ? ''
         : '<span class="sauce-card__stock-badge sauce-card__stock-badge--out">Нет в наличии</span>';
 
+    const lazyAttr = index < 4 ? '' : ' loading="lazy"';
     const img = sauce.image
-        ? `<img class="sauce-card__image" src="/uploads/${esc(sauce.image)}" alt="${esc(sauce.name)}" loading="lazy">`
+        ? `<img class="sauce-card__image" src="/uploads/${esc(sauce.image)}" alt="${esc(sauce.name)}"${lazyAttr}>`
         : `<div class="sauce-card__image-placeholder"></div>`;
 
     const delay = Math.min(index * CARD_ANIMATION_STEP, MAX_ANIMATION_DELAY);
@@ -483,6 +492,7 @@ function populateModalContent(sauce) {
 function showModal() {
     modalOverlay.classList.add('active');
     document.body.classList.add('modal-open');
+    history.pushState({ ragefillModal: 'catalog' }, '');
     requestAnimationFrame(() => {
         const firstFocusable = modal.querySelector(FOCUSABLE_SELECTOR);
         if (firstFocusable) firstFocusable.focus();
@@ -495,13 +505,23 @@ function openModal(sauce) {
     showModal();
 }
 
+let _catalogClosingViaPopstate = false;
 function closeModal() {
+    if (!modalOverlay.classList.contains('active')) return;
     modalOverlay.classList.remove('active');
     document.body.classList.remove('modal-open');
     haptic('impact', 'light');
     if (tg) { tg.BackButton.hide(); tg.BackButton.offClick(closeModal); }
     if (modalTriggerEl) { modalTriggerEl.focus(); modalTriggerEl = null; }
+    if (!_catalogClosingViaPopstate) history.back();
 }
+window.addEventListener('popstate', () => {
+    if (modalOverlay.classList.contains('active')) {
+        _catalogClosingViaPopstate = true;
+        closeModal();
+        _catalogClosingViaPopstate = false;
+    }
+});
 
 document.getElementById('modal-read-more').addEventListener('click', () => {
     const desc = document.getElementById('modal-description');
