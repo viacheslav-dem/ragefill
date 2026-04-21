@@ -12,12 +12,10 @@ use Slim\Psr7\Response as SlimResponse;
 
 class AuthMiddleware implements MiddlewareInterface
 {
-    private string $adminPassword;
-
-    public function __construct(string $adminPassword)
-    {
-        $this->adminPassword = $adminPassword;
-    }
+    public function __construct(
+        private string $adminPasswordHash,
+        private string $tokenSecret,
+    ) {}
 
     public function process(Request $request, Handler $handler): Response
     {
@@ -38,17 +36,17 @@ class AuthMiddleware implements MiddlewareInterface
 
     public function generateToken(string $password): ?string
     {
-        if (!hash_equals($this->adminPassword, $password)) {
+        if (!password_verify($password, $this->adminPasswordHash)) {
             return null;
         }
 
         $payload = [
-            'exp' => time() + 86400, // 24 hours
+            'exp' => time() + 86400, // 24 часа
             'iat' => time(),
         ];
 
         $data = base64_encode(json_encode($payload));
-        $signature = hash_hmac('sha256', $data, $this->adminPassword);
+        $signature = hash_hmac('sha256', $data, $this->tokenSecret);
 
         return "$data.$signature";
     }
@@ -62,7 +60,7 @@ class AuthMiddleware implements MiddlewareInterface
 
         [$data, $signature] = $parts;
 
-        $expectedSignature = hash_hmac('sha256', $data, $this->adminPassword);
+        $expectedSignature = hash_hmac('sha256', $data, $this->tokenSecret);
         if (!hash_equals($expectedSignature, $signature)) {
             return false;
         }

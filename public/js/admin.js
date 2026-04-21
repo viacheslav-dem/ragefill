@@ -146,6 +146,14 @@ document.getElementById('login-btn').addEventListener('click', login);
 document.getElementById('login-password').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') login();
 });
+document.getElementById('login-password-toggle').addEventListener('click', () => {
+    const input = document.getElementById('login-password');
+    const btn = document.getElementById('login-password-toggle');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.setAttribute('aria-pressed', String(show));
+    btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+});
 
 async function login() {
     const btn = document.getElementById('login-btn');
@@ -188,6 +196,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     siteSettingsLoaded = false;
     peppersLoaded = false;
     peppersDirty = false;
+    catalogSettingsLoaded = false;
     _siteSettingsPromise = null;
     loginScreen.style.display = '';
     adminPanel.style.display = 'none';
@@ -988,7 +997,7 @@ let siteSettingsLoaded = false;
 let quillAbout = null;
 
 // --- CMS Navigation (sidebar) ---
-const PAGE_TITLES = { sauces: 'Товары', categories: 'Категории', peppers: 'Наши перцы', site: 'Главная страница' };
+const PAGE_TITLES = { sauces: 'Товары', categories: 'Категории', peppers: 'Наши перцы', catalog: 'Каталог', site: 'Главная страница' };
 
 function isPeppersTabActive() {
     const tab = document.getElementById('tab-peppers');
@@ -1025,6 +1034,10 @@ document.querySelectorAll('.cms-nav__item[data-tab]').forEach(navItem => {
         // Load peppers on first visit
         if (navItem.dataset.tab === 'peppers' && !peppersLoaded) {
             loadPeppersSettings();
+        }
+        // Load catalog settings on first visit
+        if (navItem.dataset.tab === 'catalog' && !catalogSettingsLoaded) {
+            loadCatalogSettings();
         }
         // Load site settings on first visit
         if (navItem.dataset.tab === 'site' && !siteSettingsLoaded) {
@@ -1260,6 +1273,43 @@ document.getElementById('peppers-save-btn').addEventListener('click', async () =
             _siteSettingsPromise = null; // invalidate cache after save
             const badge = document.getElementById('nav-peppers-count');
             if (badge) badge.textContent = payload.peppers.length || '';
+        } else {
+            showToast('Ошибка сохранения', 'error');
+        }
+    } catch { showToast('Ошибка соединения', 'error'); } finally {
+        setLoading(btn, false);
+    }
+});
+
+let catalogSettingsLoaded = false;
+
+async function loadCatalogSettings() {
+    try {
+        const data = await fetchSiteSettingsOnce();
+        document.getElementById('ss-catalog-page-title').value = data.catalog_page_title || '';
+        document.getElementById('ss-catalog-page-intro').value = data.catalog_page_intro || '';
+        catalogSettingsLoaded = true;
+    } catch { showToast('Ошибка загрузки', 'error'); }
+}
+
+document.getElementById('catalog-save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('catalog-save-btn');
+    setLoading(btn, true);
+    const payload = {
+        catalog_page_title: document.getElementById('ss-catalog-page-title').value.trim(),
+        catalog_page_intro: document.getElementById('ss-catalog-page-intro').value.trim(),
+    };
+    try {
+        const res = await fetch(`${API_BASE}/admin/site-settings`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (res.status === 401) { document.getElementById('logout-btn').click(); return; }
+        const data = await res.json();
+        if (data.success) {
+            showToast('Настройки каталога сохранены');
+            _siteSettingsPromise = null;
         } else {
             showToast('Ошибка сохранения', 'error');
         }

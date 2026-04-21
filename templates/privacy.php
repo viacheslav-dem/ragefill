@@ -10,6 +10,7 @@ $includeTgScript = false;
 <html lang="ru">
 <?php include __DIR__ . '/partials/head.php'; ?>
 <body class="browser-mode">
+    <script data-cfasync="false">if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData){window.location.replace('/catalog');}</script>
     <?php include __DIR__ . '/partials/header.php'; ?>
 
     <nav class="catalog-breadcrumb" aria-label="Навигация">
@@ -47,7 +48,8 @@ $includeTgScript = false;
         (function(){
             var saved=localStorage.getItem('ragefill-theme');
             if(saved==='dark') document.body.classList.add('tg-dark');
-            else if(!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('tg-dark');
+            else if(saved==='light') document.body.classList.remove('tg-dark');
+            else if(window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('tg-dark');
             var meta=document.getElementById('meta-theme-color');
             function syncThemeColor(){ if(meta) meta.content=document.body.classList.contains('tg-dark')?'#161210':'#0a0a0a'; }
             syncThemeColor();

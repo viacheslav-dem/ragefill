@@ -16,7 +16,17 @@
     <meta name="theme-color" content="#0a0a0a" id="meta-theme-color">
     <link rel="stylesheet" href="/css/style.css?v={{V_STYLE}}">
     <link rel="preconnect" href="https://telegram.org">
-    <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false" defer></script>
+    <script src="https://telegram.org/js/telegram-web-app.js" data-cfasync="false"></script>
+    <script data-cfasync="false">
+    (function(){
+        var tg = window.Telegram && window.Telegram.WebApp;
+        var isTg = !!window.TelegramWebviewProxy
+            || (tg && tg.initData)
+            || /Telegram|TgWebView/i.test(navigator.userAgent)
+            || /tgWebApp/.test(window.location.hash);
+        if (isTg) document.documentElement.classList.add('tg-browser');
+    })();
+    </script>
 
 </head>
 <body>
@@ -161,9 +171,9 @@
 
     <!-- Product grid -->
     <section class="catalog-section" aria-label="Товары">
-        <div class="catalog-intro browser-only-link" id="catalog-intro">
-            <h1 class="catalog-intro__title" id="catalog-heading">Каталог соусов и жгучих закусок RAGE FILL</h1>
-            <p>Острые соусы ручной работы, маринованные перцы, сверхострые специи, подарочные наборы и острый арахис.<br>Готовим из собственных перцев и натуральных ингредиентов. Острота под любой вкус — от лёгкой до экстремальной.<br> Доставка по Минску и Беларуси.</p>
+        <div class="catalog-intro" id="catalog-intro">
+            <h1 class="catalog-intro__title" id="catalog-heading">{{CATALOG_TITLE}}</h1>
+            <p>{{CATALOG_INTRO}}</p>
         </div>
         <div class="catalog-section__topbar">
             <div class="catalog-section__results" id="desktop-results-count" aria-live="polite" aria-atomic="true"></div>

@@ -15,7 +15,7 @@ require __DIR__ . '/../vendor/autoload.php';
 $config = require __DIR__ . '/../config.php';
 
 $db = new Database($config['db_path']);
-$auth = new AuthMiddleware($config['admin_password']);
+$auth = new AuthMiddleware($config['admin_password_hash'], $config['token_secret']);
 $seo = new SeoHelper($config['base_url']);
 
 /** Return filemtime of a public asset as cache-buster string. */
@@ -122,16 +122,29 @@ $errorMiddleware->setErrorHandler(
     }
 );
 
-// CORS middleware
+// CORS middleware — жёсткий allowlist.
+// Публичное API (/api/sauces, /api/settings, /api/categories) отражает только свой origin.
+// /api/admin/* CORS вообще не отдаёт — запросы должны идти только с нашей same-origin админки.
 $app->add(function (Request $request, $handler) use ($config) {
     $response = $handler->handle($request);
-    $response = $response
-        ->withHeader('Access-Control-Allow-Origin', '*')
-        ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+
+    $path = $request->getUri()->getPath();
+    $origin = $request->getHeaderLine('Origin');
+    $allowedOrigin = rtrim($config['base_url'] ?? '', '/');
+
+    $isAdminApi = str_starts_with($path, '/api/admin/');
+    $isPublicApi = str_starts_with($path, '/api/') && !$isAdminApi;
+
+    if ($isPublicApi && $origin !== '' && $origin === $allowedOrigin) {
+        $response = $response
+            ->withHeader('Access-Control-Allow-Origin', $allowedOrigin)
+            ->withHeader('Vary', 'Origin')
+            ->withHeader('Access-Control-Allow-Headers', 'Content-Type')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    }
+    // admin-эндпоинты: никаких CORS-заголовков → браузер заблокирует кросс-оригин.
 
     // Prevent search engines from indexing API responses
-    $path = $request->getUri()->getPath();
     if (str_starts_with($path, '/api/')) {
         $response = $response->withHeader('X-Robots-Tag', 'noindex');
     }
@@ -465,6 +478,7 @@ $app->group('/api/admin', function (RouteCollectorProxy $group) use ($db, $confi
             'section_title_benefits', 'section_title_reviews', 'section_title_faq',
             'footer_tagline', 'footer_about',
             'peppers', 'peppers_page_title', 'peppers_page_intro',
+            'catalog_page_title', 'catalog_page_intro',
         ];
 
         $toSave = [];
@@ -798,11 +812,17 @@ $app->get('/catalog', function (Request $request, Response $response) use ($db, 
     $html = str_replace('{{HREFLANG_URL}}', $baseUrl . '/catalog', $html);
     $contactTg = htmlspecialchars($config['contact_telegram'] ?? 'rage_fill', ENT_QUOTES, 'UTF-8');
 
+    // Catalog page title & intro (editable from admin)
+    $catalogSettings = $db->getAllSettings();
+    $catalogTitle = htmlspecialchars($catalogSettings['catalog_page_title'] ?? 'Каталог соусов и жгучих закусок RAGE FILL', ENT_QUOTES, 'UTF-8');
+    $catalogIntro = htmlspecialchars($catalogSettings['catalog_page_intro'] ?? '', ENT_QUOTES, 'UTF-8');
+    $html = str_replace('{{CATALOG_TITLE}}', $catalogTitle, $html);
+    $html = str_replace('{{CATALOG_INTRO}}', nl2br($catalogIntro), $html);
+
     // Render shared header partial
     $headerClass = 'header--catalog';
     $headerBrowserOnly = true;
     $headerSearchId = 'desktop-search-input';
-    $headerTgSubtitle = 'КАТАЛОГ СВЕРХОСТРЫХ СОУСОВ';
     ob_start();
     include __DIR__ . '/../templates/partials/header.php';
     $headerHtml = ob_get_clean();
@@ -849,7 +869,9 @@ $app->get('/admin', function (Request $request, Response $response) {
     $html = file_get_contents(__DIR__ . '/admin.html');
     $html = replace_asset_versions($html);
     $response->getBody()->write($html);
-    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    return $response
+        ->withHeader('Content-Type', 'text/html; charset=utf-8')
+        ->withHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
 });
 
 // --- About redirects to homepage ---
@@ -1249,7 +1271,7 @@ function renderPeppersPage(array $config, SeoHelper $seo, Database $db): string
                             <div class="pepper-detail__bar"><div class="pepper-row__bar-track"><div class="pepper-row__bar-fill pepper-row__bar-fill--{$tier}" style="width:{$pct}%"></div></div></div>
                         </div>
                         <p class="pepper-detail__text">{$descText}</p>
-                        <a href="/catalog?q={$name}" class="pepper-detail__catalog-link">Смотреть соусы в каталоге</a>
+                        <a href="/catalog?q={$name}" class="pepper-detail__catalog-link">Найти продукцию с этим перцем</a>
                     </div>
                 </td>
             </tr>
@@ -1297,29 +1319,87 @@ function renderPeppersPage(array $config, SeoHelper $seo, Database $db): string
     ));
 }
 
+/**
+ * Санитайзер HTML на DOMDocument-allowlist.
+ * Всё, что не входит в $allowedTags, распаковывается (контент сохраняется как текст).
+ * Атрибуты не в $allowedAttrs удаляются. В <a> разрешены только http(s)/mailto.
+ */
 function sanitizeHtml(string $html): string
 {
-    // Step 1: strip all tags except safe formatting ones + links
-    $clean = strip_tags($html, '<p><br><strong><em><ul><ol><li><a>');
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
 
-    // Step 2: preserve safe href on <a>, strip all other attributes from all tags
-    // First, extract and protect safe href attributes on <a> tags
-    $clean = preg_replace_callback('/<a\s+[^>]*>/i', function ($m) {
-        if (preg_match('/href\s*=\s*"([^"]*)"/', $m[0], $href)) {
-            $url = $href[1];
-            // Only allow http(s) and mailto links
-            if (preg_match('#^(https?://|mailto:)#i', $url)) {
-                $safeUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
-                return '<a href="' . $safeUrl . '" target="_blank" rel="noopener">';
+    $allowedTags  = ['p', 'br', 'strong', 'em', 'u', 'b', 'i', 'ul', 'ol', 'li', 'a'];
+    $allowedAttrs = ['a' => ['href']];
+
+    $dom = new \DOMDocument('1.0', 'UTF-8');
+    $prevErrors = libxml_use_internal_errors(true);
+    // XML-декларация + обёртка принуждают libxml трактовать ввод как UTF-8 без добавления <html>/<body>
+    $wrapped = '<?xml encoding="UTF-8"?><div id="__sanitize_root__">' . $html . '</div>';
+    $dom->loadHTML($wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+    libxml_use_internal_errors($prevErrors);
+
+    $root = $dom->getElementById('__sanitize_root__');
+    if (!$root) {
+        return '';
+    }
+
+    $filter = static function (\DOMNode $node) use (&$filter, $allowedTags, $allowedAttrs): void {
+        // Снимок детей — живой NodeList ломается при удалении/перемещении
+        $children = iterator_to_array($node->childNodes);
+        foreach ($children as $child) {
+            if ($child instanceof \DOMElement) {
+                // Post-order: сначала чистим детей, потом решаем про сам элемент
+                $filter($child);
+
+                $tag = strtolower($child->nodeName);
+                if (!in_array($tag, $allowedTags, true)) {
+                    // Распаковка: переносим уже-очищенных детей в родителя, удаляем обёртку
+                    while ($child->firstChild !== null) {
+                        $node->insertBefore($child->firstChild, $child);
+                    }
+                    $node->removeChild($child);
+                    continue;
+                }
+
+                // Чистим атрибуты
+                $allow = $allowedAttrs[$tag] ?? [];
+                $toRemove = [];
+                foreach ($child->attributes as $attr) {
+                    if (!in_array(strtolower($attr->nodeName), $allow, true)) {
+                        $toRemove[] = $attr->nodeName;
+                    }
+                }
+                foreach ($toRemove as $name) {
+                    $child->removeAttribute($name);
+                }
+
+                // Валидация href у <a>: только http(s) / mailto
+                if ($tag === 'a' && $child->hasAttribute('href')) {
+                    $href = trim($child->getAttribute('href'));
+                    if (!preg_match('#^(https?://|mailto:)#i', $href)) {
+                        $child->removeAttribute('href');
+                    } else {
+                        $child->setAttribute('target', '_blank');
+                        $child->setAttribute('rel', 'noopener noreferrer');
+                    }
+                }
+            } elseif ($child instanceof \DOMComment || $child instanceof \DOMProcessingInstruction) {
+                $node->removeChild($child);
             }
+            // DOMText и прочее — оставляем
         }
-        return '<a>';
-    }, $clean);
+    };
+    $filter($root);
 
-    // Step 3: remove ALL attributes from remaining (non-<a>) tags
-    $clean = preg_replace('/<(?!a[\s>])(\w+)\s+[^>]*>/i', '<$1>', $clean);
-
-    return $clean;
+    $result = '';
+    foreach ($root->childNodes as $child) {
+        $result .= $dom->saveHTML($child);
+    }
+    return $result;
 }
 
 function getFooterVars(Database $db): array

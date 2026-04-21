@@ -221,6 +221,8 @@ class Database
         $stmt->execute(['peppers', json_encode($peppers, JSON_UNESCAPED_UNICODE)]);
         $stmt->execute(['peppers_page_title', 'Наши перцы']);
         $stmt->execute(['peppers_page_intro', 'Мы выращиваем собственные сверхострые перцы для наших соусов. От классического Habanero до рекордсмена Carolina Reaper — каждый сорт привносит уникальный вкус и характер остроты.']);
+        $stmt->execute(['catalog_page_title', 'Каталог соусов и жгучих закусок RAGE FILL']);
+        $stmt->execute(['catalog_page_intro', "Острые соусы ручной работы, маринованные перцы, сверхострые специи, подарочные наборы и острый арахис.\nГотовим из собственных перцев и натуральных ингредиентов. Острота под любой вкус — от лёгкой до экстремальной.\nДоставка по Минску и Беларуси."]);
     }
 
     public function getPdo(): PDO

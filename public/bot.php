@@ -19,7 +19,7 @@ declare(strict_types=1);
  *
  * 2) Set menu button (opens Mini App directly):
  * POST https://api.telegram.org/bot<TOKEN>/setChatMenuButton
- * {"menu_button":{"type":"web_app","text":"Каталог","web_app":{"url":"https://ragefill.glosstechn.by"}}}
+ * {"menu_button":{"type":"web_app","text":"Каталог","web_app":{"url":"https://ragefill.by/catalog"}}}
  *
  * 3) Set bot description (shown before user presses /start):
  * POST https://api.telegram.org/bot<TOKEN>/setMyDescription
@@ -30,27 +30,30 @@ declare(strict_types=1);
  * {"short_description":"Сверхострые соусы ручной работы. Каталог, заказ, доставка."}
  */
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
-$config = require __DIR__ . '/config.php';
+$config = require __DIR__ . '/../config.php';
 $botToken = $config['bot_token'];
-$webAppUrl = $config['base_url'];
+$webAppUrl = rtrim($config['base_url'], '/') . '/catalog';
 $contactTg = $config['contact_telegram'];
 
-// One-time setup endpoint: CLI only (php bot.php setup)
+// One-time setup endpoint: CLI only (php public/bot.php setup)
 if (php_sapi_name() === 'cli' && ($argv[1] ?? '') === 'setup') {
     setupBot($botToken, $webAppUrl);
     exit;
 }
 
-// Verify Telegram webhook secret
+// Verify Telegram webhook secret (fail-closed: пустой секрет = отказ)
 $webhookSecret = $config['webhook_secret'] ?? '';
-if ($webhookSecret !== '') {
-    $headerSecret = $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '';
-    if (!hash_equals($webhookSecret, $headerSecret)) {
-        http_response_code(403);
-        exit;
-    }
+if ($webhookSecret === '') {
+    error_log('bot.php: WEBHOOK_SECRET не сконфигурирован — вебхук отклонён');
+    http_response_code(500);
+    exit;
+}
+$headerSecret = $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '';
+if (!hash_equals($webhookSecret, $headerSecret)) {
+    http_response_code(403);
+    exit;
 }
 
 $input = file_get_contents('php://input');

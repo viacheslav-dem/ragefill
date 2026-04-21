@@ -5,6 +5,10 @@
 
 const _tgRaw = window.Telegram?.WebApp;
 const tg = (_tgRaw && _tgRaw.initData) ? _tgRaw : null; // only truthy inside real TG WebApp
+const isTgEnv = !!window.TelegramWebviewProxy
+    || (_tgRaw && _tgRaw.initData)
+    || /Telegram|TgWebView/i.test(navigator.userAgent)
+    || /tgWebApp/.test(window.location.hash);
 let manualTheme = null; // null = auto, 'dark' | 'light' = manual
 
 if (tg) {
@@ -18,6 +22,8 @@ if (tg) {
 } else {
     document.body.classList.add('browser-mode');
 }
+// Any Telegram environment (WebApp or in-app browser) — hide site nav
+if (isTgEnv) document.body.classList.add('tg-browser');
 
 // Theme toggle (works in both browser and TG)
 (function initThemeToggle() {
