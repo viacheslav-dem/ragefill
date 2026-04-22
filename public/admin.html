@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="/css/fonts.css?v={{V_FONTS}}">
+    {{FONTS_CSS_INLINE}}
     <meta name="theme-color" content="#18150f" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#f5f0eb" media="(prefers-color-scheme: light)">
     <link rel="stylesheet" href="/css/style.css?v={{V_STYLE}}">
@@ -651,7 +651,7 @@
 <!-- Toast -->
 <div id="toast" class="toast" aria-live="polite" role="status"></div>
 
-<script src="/js/Sortable.min.js" data-cfasync="false"></script>
-<script src="/js/admin.js?v={{V_ADMIN}}" data-cfasync="false"></script>
+<script src="/js/Sortable.min.js" defer></script>
+<script src="/js/admin.js?v={{V_ADMIN}}" defer></script>
 </body>
 </html>

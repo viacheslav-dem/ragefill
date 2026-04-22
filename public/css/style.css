@@ -3,6 +3,7 @@
    Warm light theme, pepper heat icons
    ============================================ */
 
+/*!cs*/
 /* === Design Tokens === */
 :root {
     --fire-orange: #E8590C;
@@ -98,7 +99,6 @@ body.tg-dark .catalog-sidebar { background: var(--bg-card); border-color: var(--
 body.tg-dark .catalog-sidebar__option.active { background: rgba(232, 89, 12, 0.15); }
 body.tg-dark .header__search-input { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.15); }
 body.tg-dark .site-footer__logo-fill { color: var(--text-primary); -webkit-text-fill-color: var(--text-primary); }
-body.tg-dark .about-nav-link { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.15); }
 body.tg-dark .toolbar__chip { background: var(--bg-muted); border-color: rgba(255, 255, 255, 0.1); color: var(--text-secondary); box-shadow: none; }
 body.tg-dark .toolbar__chip.active { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.25); color: var(--text-primary); }
 body.tg-dark .toolbar__chip:not(.active):hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.15); }
@@ -242,6 +242,7 @@ body.modal-open { overflow: hidden; }
 
 body.tg-dark .theme-toggle__moon { display: block; }
 body.tg-dark .theme-toggle__sun { display: none; }
+/*!ce*/
 
 /* === TOOLBAR (search + filter dropdown) === */
 .toolbar {
@@ -532,6 +533,7 @@ body.tg-dark .theme-toggle__sun { display: none; }
     min-height: 20px;
 }
 
+/*!cs*/
 /* === Visually hidden (accessible) === */
 .visually-hidden {
     position: absolute;
@@ -552,6 +554,7 @@ body.tg-dark .theme-toggle__sun { display: none; }
     overflow: hidden;
 }
 .line-clamp-2 { -webkit-line-clamp: 2; line-clamp: 2; }
+/*!ce*/
 
 /* === CATALOG GRID === */
 search.toolbar {
@@ -658,11 +661,6 @@ search.toolbar {
     letter-spacing: 0.3px;
     z-index: 3;
     text-transform: uppercase;
-}
-
-.sauce-card__stock-badge--in {
-    background: rgba(22, 163, 74, 0.9);
-    color: #fff;
 }
 
 .sauce-card__stock-badge--out {
@@ -810,6 +808,7 @@ search.toolbar {
 
 
 /* === PRODUCT DETAIL MODAL === */
+/*!cs*/
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -828,6 +827,7 @@ search.toolbar {
     opacity: 1;
     pointer-events: auto;
 }
+/*!ce*/
 
 .modal {
     background: var(--bg-card);
@@ -1027,12 +1027,6 @@ search.toolbar {
 }
 
 .modal__read-more.visible { display: block; }
-
-.modal__divider {
-    height: 1px;
-    background: var(--border-subtle);
-    margin: 14px 0;
-}
 
 .modal__info-block {
     margin-bottom: 12px;
@@ -1582,7 +1576,6 @@ body.tg-mode .scroll-top { bottom: calc(24px + var(--safe-bottom)); }
         gap: 12px;
         flex-shrink: 0;
     }
-    .about-nav-link { display: inline-block; }
 
     /* --- CATALOG LAYOUT: sidebar + grid --- */
     .catalog-layout {
@@ -2421,6 +2414,7 @@ a.sauce-card {
     color: inherit;
 }
 
+/*!cs*/
 /* === CATALOG BREADCRUMB === */
 .catalog-breadcrumb {
     display: flex;
@@ -2446,6 +2440,7 @@ a.sauce-card {
 @media (min-width: 768px) {
     .catalog-breadcrumb { font-size: 14px; }
 }
+/*!ce*/
 
 
 /* === EMPTY STATE (catalog, search, filters) === */
@@ -2645,43 +2640,8 @@ a.sauce-card {
 }
 
 /* ============================================
-   ABOUT PAGE — Benefits, Reviews, FAQ
+   BENEFITS, REVIEWS, FAQ
    ============================================ */
-
-.about-main {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 24px 16px 0;
-}
-
-.about-section {
-    margin-bottom: 48px;
-}
-
-.about-section__title {
-    font-family: var(--font-display);
-    font-size: 32px;
-    letter-spacing: 2px;
-    color: var(--text-primary);
-    text-align: center;
-    margin-bottom: 8px;
-}
-
-.about-section__subtitle {
-    text-align: center;
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 24px;
-}
-.about-story__content {
-    max-width: 680px;
-    margin: 0 auto;
-    font-size: 15px;
-    line-height: 1.7;
-    color: var(--text-secondary);
-}
-.about-story__content p { margin-bottom: 14px; }
-.about-story__content p:last-child { margin-bottom: 0; }
 
 /* --- Benefits grid --- */
 
@@ -2726,49 +2686,6 @@ a.sauce-card {
     margin: 0;
 }
 
-/* --- Reviews gallery --- */
-
-.about-reviews__grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.about-review {
-    display: block;
-    border-radius: var(--radius);
-    overflow: hidden;
-    border: 1px solid var(--border-card);
-    transition: box-shadow 0.2s, transform 0.2s;
-    padding: 0;
-    background: none;
-    cursor: zoom-in;
-    text-align: left;
-    font: inherit;
-    color: inherit;
-}
-
-.about-review:hover {
-    box-shadow: var(--card-shadow-hover);
-    transform: translateY(-2px);
-}
-
-.about-review__img {
-    width: 100%;
-    height: auto;
-    display: block;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-}
-
-.about-reviews__empty {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 14px;
-    padding: 40px 0;
-}
-
 /* --- Instagram link (shared component) --- */
 
 .instagram-link {
@@ -2790,11 +2707,6 @@ a.sauce-card {
 .instagram-link:hover {
     background: var(--fire-orange);
     color: #fff;
-}
-
-.about-reviews .instagram-link {
-    display: flex;
-    margin: 0 auto;
 }
 
 /* --- FAQ accordion (shared component) --- */
@@ -2881,113 +2793,15 @@ a.sauce-card {
     text-decoration: underline;
 }
 
-/* --- CTA block --- */
-
-.about-cta {
-    text-align: center;
-    background: var(--bg-card);
-    border: 1px solid var(--border-card);
-    border-radius: var(--radius-xl);
-    padding: 40px 24px;
-}
-
-.about-cta__title {
-    font-family: var(--font-display);
-    font-size: 28px;
-    letter-spacing: 2px;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-}
-
-.about-cta__text {
-    font-size: 15px;
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-}
-
-.about-cta__buttons {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.about-cta__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 14px 32px;
-    border-radius: var(--radius-pill);
-    font-size: 15px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: transform 0.15s, box-shadow 0.15s;
-    min-width: 200px;
-}
-
-.about-cta__btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.about-cta__btn--primary {
-    background: linear-gradient(135deg, var(--fire-orange), var(--fire-red));
-    color: #fff;
-}
-
-.about-cta__btn--secondary {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    border: 1.5px solid var(--border-card);
-}
-
-/* --- About nav link in header --- */
-
-.about-nav-link {
-    display: none;
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
-    padding: 6px 14px;
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-pill);
-    transition: color 0.2s, border-color 0.2s;
-}
-
-.about-nav-link:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* --- About page responsive --- */
-
 @media (min-width: 540px) {
     .benefits-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    .about-reviews__grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    .about-cta__buttons {
-        flex-direction: row;
-        justify-content: center;
-    }
 }
 
 @media (min-width: 768px) {
-    .about-main {
-        padding: 40px 32px 0;
-    }
-    .about-section__title {
-        font-size: 40px;
-    }
     .benefits-grid {
         grid-template-columns: repeat(3, 1fr);
-    }
-    .about-reviews__grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
     }
     .benefit-card {
         padding: 32px 24px;
@@ -2995,16 +2809,6 @@ a.sauce-card {
 }
 
 @media (min-width: 1024px) {
-    .about-main {
-        max-width: var(--max-width-site);
-        padding: 48px 40px 0;
-    }
-    .about-section {
-        margin-bottom: 64px;
-    }
-    .about-section__title {
-        font-size: 48px;
-    }
     .benefit-card__icon {
         font-size: 42px;
     }
@@ -3022,15 +2826,10 @@ a.sauce-card {
         font-size: 15px;
     }
     .faq__list { gap: 8px; }
-    .about-cta {
-        padding: 56px 40px;
-    }
-    .about-cta__title {
-        font-size: 36px;
-    }
 }
 
 
+/*!cs*/
 /* ============================================
    HOMEPAGE STYLES
    ============================================ */
@@ -3224,16 +3023,6 @@ body.menu-open { overflow: hidden; }
     color: var(--text-primary);
     margin-left: 14px;
 }
-.home-hero__title-sub {
-    display: block;
-    font-family: var(--font-body);
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-    margin-top: 18px;
-}
 .home-hero__tagline {
     font-family: var(--font-body);
     font-size: 20px;
@@ -3302,6 +3091,7 @@ body.menu-open { overflow: hidden; }
     .home-hero__tagline { font-size: 24px; }
     .hero-liquid { display: block; }
 }
+/*!ce*/
 
 /* === Hero Liquid Gradient Edges (desktop only) === */
 .hero-liquid {
@@ -3404,6 +3194,7 @@ body.menu-open { overflow: hidden; }
 body.tg-dark .hero-liquid::before { opacity: 0.9; }
 body.tg-dark .hero-liquid::after { opacity: 0.85; }
 
+/*!cs*/
 /* --- Sections --- */
 .home-section {
     padding: 32px 0 40px;
@@ -3415,7 +3206,7 @@ body.tg-dark .hero-liquid::after { opacity: 0.85; }
     color: var(--text-primary);
     text-align: center;
     text-wrap: balance;
-    margin: 0 0 8px;
+    margin: 0 0 28px;
     position: relative;
 }
 .home-section__title::after {
@@ -3427,14 +3218,7 @@ body.tg-dark .hero-liquid::after { opacity: 0.85; }
     margin: 10px auto 0;
     border-radius: 2px;
 }
-.home-section__subtitle {
-    text-align: center;
-    font-size: 14px;
-    color: var(--text-muted);
-    margin: 0 0 24px;
-}
-.home-section__title + .home-section__subtitle { margin-top: 12px; }
-.home-section__title:not(:has(+ .home-section__subtitle)) { margin-bottom: 28px; }
+/*!ce*/
 
 /* --- Featured Products --- */
 .home-featured {
@@ -3732,6 +3516,7 @@ body.tg-dark .home-hero {
 body.tg-dark .home-hero__title-fill { color: var(--text-primary); -webkit-text-fill-color: var(--text-primary); }
 body.tg-dark .home-benefits-section { background: var(--bg-card); }
 
+/*!cs*/
 /* ============================================
    Peppers Page
    ============================================ */
@@ -3799,6 +3584,7 @@ body.tg-dark .home-benefits-section { background: var(--bg-card); }
     text-align: left;
     white-space: nowrap;
 }
+/*!ce*/
 
 /* --- Row --- */
 .pepper-row {

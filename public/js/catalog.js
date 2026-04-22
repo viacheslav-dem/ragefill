@@ -281,8 +281,12 @@ function renderCard(sauce, index) {
         : '<span class="sauce-card__stock-badge sauce-card__stock-badge--out">Нет в наличии</span>';
 
     const lazyAttr = index < 4 ? '' : ' loading="lazy"';
+    // Width/height act as aspect-ratio hint so the browser reserves layout
+    // space before CSS loads. CSS (.sauce-card__image-wrap aspect-ratio) and
+    // object-fit: cover still dictate final display — the exact numbers don't
+    // matter as long as the ratio is close to the typical product photo.
     const img = sauce.image
-        ? `<img class="sauce-card__image" src="/uploads/${esc(sauce.image)}" alt="${esc(sauce.name)}"${lazyAttr}>`
+        ? `<img class="sauce-card__image" src="/uploads/${esc(sauce.image)}" width="600" height="600" alt="${esc(sauce.name)}"${lazyAttr}>`
         : `<div class="sauce-card__image-placeholder"></div>`;
 
     const delay = Math.min(index * CARD_ANIMATION_STEP, MAX_ANIMATION_DELAY);

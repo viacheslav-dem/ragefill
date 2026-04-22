@@ -18,6 +18,11 @@
     var animId;
     var time = 0;
     var paused = false;
+    var finished = false;
+    // Seconds of animated "bloom" before we freeze the canvas. The gradient
+    // drifts slowly enough that a frozen frame is visually indistinguishable,
+    // and freezing keeps the main thread idle after the initial paint.
+    var ANIMATION_DURATION = 4;
 
     // Color palettes — light & dark
     var palettes = {
@@ -131,25 +136,40 @@
     }
 
     function loop() {
-        if (paused) return;
+        if (paused || finished) {
+            animId = null;
+            return;
+        }
         time += 0.016;
         draw();
+        if (time >= ANIMATION_DURATION) {
+            finished = true;
+            animId = null;
+            return;
+        }
         animId = requestAnimationFrame(loop);
     }
 
-    // Pause when not visible
+    // Pause when not visible. Guard on animId so the initial IntersectionObserver
+    // callback (fires right after .observe()) doesn't start a second concurrent
+    // rAF chain on top of the one init() already kicked off.
     var observer = new IntersectionObserver(function(entries) {
         paused = !entries[0].isIntersecting;
-        if (!paused) loop();
+        if (!paused && !finished && animId === null) {
+            animId = requestAnimationFrame(loop);
+        }
     }, { threshold: 0.05 });
 
-    // Theme change: reinit blob colors
+    // Theme change: reinit blob colors. While the loop is running, the next
+    // draw() picks up the new palette automatically. After freeze (or in
+    // static mode), we need one explicit redraw so the canvas reflects the
+    // new theme.
     var lastDark = isDark();
     var themeObserver = new MutationObserver(function() {
         var nowDark = isDark();
         if (nowDark !== lastDark) {
             lastDark = nowDark;
-            // Smooth: just let the palette reference update, blobs keep orbiting
+            if (finished) draw();
         }
     });
 
@@ -164,16 +184,29 @@
     var resizeTimer;
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(resize, 100);
+        resizeTimer = setTimeout(function() {
+            resize();
+            // Changing canvas dimensions wipes its contents. If the animation
+            // loop has already frozen (or we're in static mode), nothing else
+            // will redraw — do it explicitly.
+            if (finished) draw();
+        }, 100);
     });
 
-    // Respect reduced motion
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        // Draw once, no animation
+    // Skip the animated loop entirely on mobile/narrow viewports and when the
+    // user prefers reduced motion. On those devices the drifting gradient is
+    // barely perceptible but costs tens of ms per frame on the main thread,
+    // which dominates TBT on PageSpeed mobile audits. One static frame is
+    // indistinguishable visually and takes near-zero CPU.
+    var staticOnly = !window.matchMedia('(min-width: 768px)').matches
+        || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (staticOnly) {
         resize();
         initBlobs();
-        time = 1; // offset so it's not at origin
+        time = 1; // offset so blobs aren't clustered at origin
         draw();
+        finished = true;
+        themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
         return;
     }
 

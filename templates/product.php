@@ -102,8 +102,8 @@ $headerBrowserOnly = true;
     <?php include __DIR__ . '/partials/footer.php'; ?>
 
     <script src="/js/scroll-top.js?v=<?= asset_v('js/scroll-top.js') ?>" defer></script>
-    <script src="/js/lightbox.js?v=<?= asset_v('js/lightbox.js') ?>" data-cfasync="false"></script>
-    <script data-cfasync="false">
+    <script src="/js/lightbox.js?v=<?= asset_v('js/lightbox.js') ?>" defer></script>
+    <script>
         const _tgRaw = window.Telegram?.WebApp;
         const tg = (_tgRaw && _tgRaw.initData) ? _tgRaw : null;
         if (tg) {

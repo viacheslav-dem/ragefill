@@ -21,7 +21,7 @@ $metaTags = '<meta name="robots" content="noindex">';
             </div>
         </div>
     </main>
-    <script data-cfasync="false">
+    <script>
         var tg = window.Telegram && window.Telegram.WebApp;
         if (tg && tg.initData) {
             tg.ready(); tg.expand();

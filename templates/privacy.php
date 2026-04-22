@@ -10,7 +10,7 @@ $includeTgScript = false;
 <html lang="ru">
 <?php include __DIR__ . '/partials/head.php'; ?>
 <body class="browser-mode">
-    <script data-cfasync="false">if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData){window.location.replace('/catalog');}</script>
+    <script>if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData){window.location.replace('/catalog');}</script>
     <?php include __DIR__ . '/partials/header.php'; ?>
 
     <nav class="catalog-breadcrumb" aria-label="Навигация">
@@ -44,7 +44,7 @@ $includeTgScript = false;
 
     <?php include __DIR__ . '/partials/footer.php'; ?>
 
-    <script data-cfasync="false">
+    <script>
         (function(){
             var saved=localStorage.getItem('ragefill-theme');
             if(saved==='dark') document.body.classList.add('tg-dark');

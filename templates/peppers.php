@@ -14,13 +14,13 @@
 $includeTgScript = false;
 $headerClass = 'header--peppers';
 $headerSearchId = 'desktop-search-input';
-$extraCss = '    <link rel="stylesheet" href="/css/aos.css?v=' . asset_v('css/aos.css') . '">' . "\n";
+$extraCss = '    ' . inline_css('css/aos.css') . "\n";
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <?php include __DIR__ . '/partials/head.php'; ?>
 <body class="browser-mode peppers-page">
-    <script data-cfasync="false">if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData){window.location.replace('/catalog');}</script>
+    <script>if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData){window.location.replace('/catalog');}</script>
     <?php include __DIR__ . '/partials/header.php'; ?>
 
     <nav class="catalog-breadcrumb" aria-label="Навигация">
@@ -76,9 +76,9 @@ $extraCss = '    <link rel="stylesheet" href="/css/aos.css?v=' . asset_v('css/ao
     <?php include __DIR__ . '/partials/footer.php'; ?>
 
     <script src="/js/scroll-top.js?v=<?= asset_v('js/scroll-top.js') ?>" defer></script>
-    <script src="/js/lightbox.js?v=<?= asset_v('js/lightbox.js') ?>" data-cfasync="false"></script>
-    <script src="/js/aos.js?v=<?= asset_v('js/aos.js') ?>" data-cfasync="false"></script>
-    <script data-cfasync="false">
+    <script src="/js/lightbox.js?v=<?= asset_v('js/lightbox.js') ?>" defer></script>
+    <script src="/js/aos.js?v=<?= asset_v('js/aos.js') ?>" defer></script>
+    <script>
         (function(){
             var saved=localStorage.getItem('ragefill-theme');
             if(saved==='dark') document.body.classList.add('tg-dark');
@@ -112,7 +112,18 @@ $extraCss = '    <link rel="stylesheet" href="/css/aos.css?v=' . asset_v('css/ao
                 if(e.key==='Enter'&&input.value.trim()) window.location.href='/catalog?q='+encodeURIComponent(input.value.trim());
             });
         })();
-        AOS.init({ duration: 600, once: true, offset: 40 });
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof AOS !== 'undefined') AOS.init({ duration: 600, once: true, offset: 40 });
+        });
+
+        // BFCache fix — force all data-aos elements visible on back-navigation
+        // so none stay stuck at opacity:0 if the page is restored from cache.
+        window.addEventListener('pageshow', function(e) {
+            if (!e.persisted) return;
+            document.querySelectorAll('[data-aos]').forEach(function(el) {
+                el.classList.add('aos-animate');
+            });
+        });
 
         // Lightbox on pepper images
         document.querySelectorAll('.pepper-row__img, .pepper-detail__img-wrap .pepper-row__img').forEach(function(img) {

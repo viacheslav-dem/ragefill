@@ -24,11 +24,85 @@ function asset_v(string $file): string {
     return file_exists($path) ? (string) filemtime($path) : '0';
 }
 
+/**
+ * Return the contents of a small public CSS file wrapped in a <style> tag so
+ * it can be inlined into <head> instead of blocking rendering with an extra
+ * network request. Falls back to a regular <link> if the file is missing.
+ */
+function inline_css(string $file): string {
+    static $cache = [];
+    if (isset($cache[$file])) {
+        return $cache[$file];
+    }
+    $path = __DIR__ . '/' . ltrim($file, '/');
+    if (is_readable($path)) {
+        $css = file_get_contents($path);
+        if ($css !== false) {
+            return $cache[$file] = '<style>' . $css . '</style>';
+        }
+    }
+    return $cache[$file] = '<link rel="stylesheet" href="/' . ltrim($file, '/') . '?v=' . asset_v($file) . '">';
+}
+
+/**
+ * Extract above-the-fold CSS from style.css — everything between cs/ce
+ * markers (see the regex below for the exact syntax) — and return it as
+ * an inline <style> block for <head>. Falls back to empty string if
+ * style.css is unreadable or no markers exist (in that case the deferred
+ * link below still loads the full stylesheet).
+ */
+function critical_css_inline(): string {
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+    $path = __DIR__ . '/css/style.css';
+    if (!is_readable($path)) {
+        return $cached = '';
+    }
+    $css = file_get_contents($path);
+    if ($css === false) {
+        return $cached = '';
+    }
+    if (!preg_match_all('#/\*!cs\*/(.*?)/\*!ce\*/#s', $css, $m)) {
+        return $cached = '';
+    }
+    return $cached = '<style>' . implode("\n", $m[1]) . '</style>';
+}
+
+/**
+ * Non-blocking <link> for the full stylesheet: preload-as-style then swap to
+ * stylesheet on load, with a <noscript> fallback for no-JS clients.
+ */
+function deferred_stylesheet(string $file): string {
+    $href = '/' . ltrim($file, '/') . '?v=' . asset_v($file);
+    return '<link rel="preload" href="' . $href . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">'
+        . '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>';
+}
+
+/**
+ * Return an ' width="W" height="H"' attribute fragment (with leading space) for
+ * a public-relative image path. Empty string if the file is missing or unreadable.
+ * Lets the browser reserve the right layout slot before CSS/JS applies, prevents
+ * CLS, and satisfies the "image elements do not have explicit width and height"
+ * Lighthouse audit. Result is cached per request.
+ */
+function img_size(string $publicPath): string {
+    static $cache = [];
+    $key = ltrim($publicPath, '/');
+    if (isset($cache[$key])) return $cache[$key];
+    $fsPath = __DIR__ . '/' . $key;
+    if (!is_readable($fsPath)) return $cache[$key] = '';
+    $info = @getimagesize($fsPath);
+    if (!$info || empty($info[0]) || empty($info[1])) return $cache[$key] = '';
+    return $cache[$key] = ' width="' . (int)$info[0] . '" height="' . (int)$info[1] . '"';
+}
+
 /** Replace {{V_*}} asset version placeholders in HTML templates (catalog.html, admin.html). */
 function replace_asset_versions(string $html): string {
     return str_replace(
-        ['{{V_FONTS}}', '{{V_STYLE}}', '{{V_CATALOG}}', '{{V_ADMIN}}', '{{V_SCROLL}}'],
-        [asset_v('css/fonts.css'), asset_v('css/style.css'), asset_v('js/catalog.js'), asset_v('js/admin.js'), asset_v('js/scroll-top.js')],
+        ['{{V_FONTS}}', '{{V_STYLE}}', '{{V_CATALOG}}', '{{V_ADMIN}}', '{{V_SCROLL}}', '{{FONTS_CSS_INLINE}}', '{{CRITICAL_CSS_INLINE}}', '{{STYLE_CSS_DEFERRED}}'],
+        [asset_v('css/fonts.css'), asset_v('css/style.css'), asset_v('js/catalog.js'), asset_v('js/admin.js'), asset_v('js/scroll-top.js'), inline_css('css/fonts.css'), critical_css_inline(), deferred_stylesheet('css/style.css')],
         $html
     );
 }
@@ -1033,7 +1107,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database
         }
         $mainSrc = $lightboxSrcs[0];
         $lightboxData = htmlspecialchars(json_encode($lightboxSrcs), ENT_QUOTES, 'UTF-8');
-        $image = '<img class="product-page__image product-page__image--clickable" id="gallery-main-img" src="' . $mainSrc . '" alt="' . $name . '" data-gallery="' . $lightboxData . '" role="button" tabindex="0" aria-label="Открыть фото">';
+        $image = '<img class="product-page__image product-page__image--clickable" id="gallery-main-img" src="' . $mainSrc . '"' . img_size($mainSrc) . ' alt="' . $name . '" data-gallery="' . $lightboxData . '" role="button" tabindex="0" aria-label="Открыть фото">';
 
         $thumbsHtml = '';
         if (count($allImages) > 1) {
@@ -1042,7 +1116,7 @@ function renderProductPage(array $sauce, SeoHelper $seo, array $config, Database
                 $src = $lightboxSrcs[$i];
                 $activeClass = $i === 0 ? ' active' : '';
                 $thumbsHtml .= '<button class="product-page__thumb' . $activeClass . '" data-src="' . $src . '" data-index="' . $i . '" aria-label="Фото ' . ($i + 1) . '">'
-                    . '<img src="' . $src . '" alt="' . $name . ' — фото ' . ($i + 1) . '" loading="lazy">'
+                    . '<img src="' . $src . '"' . img_size($src) . ' alt="' . $name . ' — фото ' . ($i + 1) . '" loading="lazy">'
                     . '</button>';
             }
             $thumbsHtml .= '</div>';
@@ -1491,8 +1565,9 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
         $subtitle = htmlspecialchars($s['subtitle'] ?? '', ENT_QUOTES, 'UTF-8');
         $slug = htmlspecialchars($s['slug'] ?? $s['id'], ENT_QUOTES, 'UTF-8');
         $heat = (int)($s['heat_level'] ?? 1);
+        $imgFile = '/uploads/' . htmlspecialchars($s['image'] ?? '', ENT_QUOTES, 'UTF-8');
         $img = !empty($s['image'])
-            ? '<img class="home-product__img" src="/uploads/' . htmlspecialchars($s['image'], ENT_QUOTES, 'UTF-8') . '" alt="' . $name . '" loading="lazy">'
+            ? '<img class="home-product__img" src="' . $imgFile . '"' . img_size($imgFile) . ' alt="' . $name . '" loading="lazy">'
             : '<div class="home-product__img-placeholder"></div>';
 
         $peppers = '';
@@ -1579,9 +1654,10 @@ function renderHomePage(array $config, SeoHelper $seo, \Ragefill\Database $db): 
             $reviewSrcs[] = $src;
             $delay = $idx * 80;
             $reviewNum = $idx + 1;
+            $dims = img_size($src);
             $reviewsHtml .= <<<HTML
                 <button type="button" class="home-review" data-review-index="{$idx}" data-aos="fade-up" data-aos-delay="{$delay}">
-                    <img class="home-review__img" src="{$src}" alt="Отзыв #{$reviewNum} клиента RAGEFILL об острых соусах" loading="lazy">
+                    <img class="home-review__img" src="{$src}"{$dims} alt="Отзыв #{$reviewNum} клиента RAGEFILL об острых соусах" loading="lazy">
                 </button>
             HTML;
         }

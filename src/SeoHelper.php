@@ -269,8 +269,10 @@ class SeoHelper
         $isNew = ($sauce['is_new'] ?? 0) == 1;
         $id = (int)$sauce['id'];
 
+        $imgSrc = '/uploads/' . htmlspecialchars($sauce['image'] ?? '', ENT_QUOTES, 'UTF-8');
+        $imgDims = !empty($sauce['image']) && function_exists('img_size') ? img_size($imgSrc) : '';
         $img = !empty($sauce['image'])
-            ? '<img class="sauce-card__image" src="/uploads/' . htmlspecialchars($sauce['image'], ENT_QUOTES, 'UTF-8') . '" alt="' . $name . '" loading="lazy">'
+            ? '<img class="sauce-card__image" src="' . $imgSrc . '"' . $imgDims . ' alt="' . $name . '" loading="lazy">'
             : '<div class="sauce-card__image-placeholder"></div>';
 
         $stockClass = $inStock ? '' : ' out-of-stock';

@@ -21,7 +21,7 @@
  * @var string $testimonialsHtml
  * @var string $instagramReviewsUrl
  */
-$extraCss = '    <link rel="stylesheet" href="/css/aos.css?v=' . asset_v('css/aos.css') . '">' . "\n";
+$extraCss = '    ' . inline_css('css/aos.css') . "\n";
 $extraHead = $faqJsonLd . "\n" . $orgJsonLd . "\n" . $websiteJsonLd;
 $includeTgScript = false;
 $headerSearchId = 'desktop-search-input';
@@ -30,7 +30,7 @@ $headerSearchId = 'desktop-search-input';
 <html lang="ru">
 <?php include __DIR__ . '/partials/head.php'; ?>
 <body class="browser-mode home-page">
-    <script data-cfasync="false">if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData){window.location.replace('/catalog');}</script>
+    <script>if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData){window.location.replace('/catalog');}</script>
 
     <?php include __DIR__ . '/partials/header.php'; ?>
 
@@ -144,7 +144,7 @@ $headerSearchId = 'desktop-search-input';
                         <span class="modal__pepper-label"></span>
                     </div>
                     <div id="home-modal-description" class="modal__description collapsed"></div>
-                    <button id="home-modal-read-more" class="modal__read-more" style="display:none">Читать далее</button>
+                    <button id="home-modal-read-more" class="modal__read-more" aria-expanded="false" aria-controls="home-modal-description">Читать далее</button>
                     <div id="home-modal-composition" class="modal__info-block" style="display:none">
                         <div class="modal__info-label">Состав</div>
                         <div id="home-modal-composition-value" class="modal__info-value"></div>
@@ -161,11 +161,11 @@ $headerSearchId = 'desktop-search-input';
     <?php include __DIR__ . '/partials/footer.php'; ?>
 
     <script src="/js/scroll-top.js?v=<?= asset_v('js/scroll-top.js') ?>" defer></script>
-    <script src="/js/lightbox.js?v=<?= asset_v('js/lightbox.js') ?>" data-cfasync="false"></script>
-    <script src="/js/slider.js?v=<?= asset_v('js/slider.js') ?>" data-cfasync="false"></script>
-    <script src="/js/aos.js?v=<?= asset_v('js/aos.js') ?>" data-cfasync="false"></script>
+    <script src="/js/lightbox.js?v=<?= asset_v('js/lightbox.js') ?>" defer></script>
+    <script src="/js/slider.js?v=<?= asset_v('js/slider.js') ?>" defer></script>
+    <script src="/js/aos.js?v=<?= asset_v('js/aos.js') ?>" defer></script>
     <script>window.__HOME_DATA__={sauces:<?= $featuredJson ?>,contactTg:<?= json_encode($contactTgRaw ?? $contactTg, JSON_HEX_TAG | JSON_HEX_AMP) ?>};</script>
-    <script src="/js/home.js?v=<?= asset_v('js/home.js') ?>" data-cfasync="false"></script>
+    <script src="/js/home.js?v=<?= asset_v('js/home.js') ?>" defer></script>
     <script src="/js/hero-gradient.js?v=<?= asset_v('js/hero-gradient.js') ?>" defer></script>
 </body>
 </html>

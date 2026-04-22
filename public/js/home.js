@@ -11,6 +11,18 @@
         AOS.init({ duration: 700, once: true, offset: 50 });
     }
 
+    // Back/forward cache fix: when the browser restores this page from BFCache
+    // (event.persisted === true), AOS doesn't re-run — so any [data-aos]
+    // element that never made it into the viewport on the first visit stays
+    // stuck at opacity:0 / translate(0,100px). Force them into the final
+    // animated state so nothing is ever invisible on a back-navigation.
+    window.addEventListener('pageshow', function(e) {
+        if (!e.persisted) return;
+        document.querySelectorAll('[data-aos]').forEach(function(el) {
+            el.classList.add('aos-animate');
+        });
+    });
+
     // Reviews slider + lightbox
     (function() {
         var container = document.getElementById('home-reviews');
@@ -135,7 +147,7 @@
 
             var imgWrap = document.getElementById('home-modal-image');
             if (sauce.image) {
-                imgWrap.innerHTML = '<img class="modal__image" src="/uploads/' + esc(sauce.image) + '" alt="' + esc(sauce.name) + '">';
+                imgWrap.innerHTML = '<img class="modal__image" src="/uploads/' + esc(sauce.image) + '" width="600" height="600" alt="' + esc(sauce.name) + '">';
             } else {
                 imgWrap.innerHTML = '<div class="modal__image-placeholder"></div>';
             }
@@ -159,8 +171,18 @@
 
             descEl.innerHTML = sanitizeHtml(sauce.description);
             descEl.classList.add('collapsed');
-            readMoreBtn.style.display = sauce.description ? '' : 'none';
             readMoreBtn.textContent = 'Читать далее';
+            readMoreBtn.setAttribute('aria-expanded', 'false');
+            readMoreBtn.classList.remove('visible');
+            // Only show the button when the description is actually clipped by
+            // the .collapsed line-clamp; otherwise there's nothing to expand.
+            if (sauce.description) {
+                requestAnimationFrame(function() {
+                    if (descEl.scrollHeight > descEl.clientHeight + 2) {
+                        readMoreBtn.classList.add('visible');
+                    }
+                });
+            }
 
             var compEl = document.getElementById('home-modal-composition');
             var compVal = document.getElementById('home-modal-composition-value');
@@ -207,6 +229,7 @@
         readMoreBtn.addEventListener('click', function() {
             var collapsed = descEl.classList.toggle('collapsed');
             readMoreBtn.textContent = collapsed ? 'Читать далее' : 'Свернуть';
+            readMoreBtn.setAttribute('aria-expanded', String(!collapsed));
         });
 
         contactBtn.addEventListener('click', function() {
